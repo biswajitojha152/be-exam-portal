@@ -11,10 +11,6 @@ import java.util.List;
 @Repository
 public interface CategoryRepository extends JpaRepository<Category, Integer> {
 
-    @Query(value = "select new com.examportal.dto.CategoryDTO(c.id, c.name) from Category c", nativeQuery = false)
-    List<CategoryDTO> getAllCategories();
-
     Boolean existsByName(String categoryName);
-
 
 }
