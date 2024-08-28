@@ -2,6 +2,8 @@ package com.examportal.controllers;
 
 import com.examportal.services.FileService;
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -13,6 +15,9 @@ import java.io.IOException;
 @RestController
 @RequestMapping("/api/file")
 public class FileController {
+
+    private final Logger logger = LoggerFactory.getLogger(FileController.class);
+
     @Autowired
     private FileService fileService;
 
@@ -27,7 +32,7 @@ public class FileController {
                             fileResource.getFile().getAbsolutePath()
                     );
         }catch (IOException e){
-            e.printStackTrace();
+            logger.error(e.getMessage());
         }
 
         if(contentType == null){

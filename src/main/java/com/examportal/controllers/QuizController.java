@@ -32,8 +32,30 @@ public class QuizController {
         return ResponseEntity.created(URI.create("quiz/" + quizEntity.getId())).body(new MessageResponse("Quiz added Successfully"));
     }
 
+    @GetMapping("/getQuizById/{quizId}")
+    public ResponseEntity<QuizDTO> getQuizById(@PathVariable("quizId") Integer quizId){
+        return ResponseEntity.ok(quizService.getQuizDetailsById(quizId));
+    }
+
+    @PutMapping("/updateQuiz")
+    public ResponseEntity<MessageResponse> updateQuiz(@RequestBody QuizDTO quizDTO){
+        Quiz result =quizService.updateQuiz(quizDTO);
+        if(result == null){
+            return ResponseEntity.badRequest().body(new MessageResponse("Quiz name already exists."));
+        }
+
+        return ResponseEntity.ok(new MessageResponse("Quiz updated successfully."));
+    }
+
+    @PutMapping("/updateQuizStatus")
+    public ResponseEntity<MessageResponse> updateQuizStatus(@RequestBody QuizDTO quizDTO){
+        quizService.updateQuizStatus(quizDTO);
+        return ResponseEntity.ok(new MessageResponse("Status updated successfully"));
+    }
+
     @PostMapping("/submitQuiz")
     public ResponseEntity<?> submitQuiz(@RequestBody QuizDTO quizDTO){
         return ResponseEntity.ok(quizService.submitQuiz(quizDTO));
     }
+
 }

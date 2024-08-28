@@ -11,10 +11,6 @@ import java.util.List;
 @Repository
 public interface QuizRepository extends JpaRepository<Quiz, Integer> {
 
-    @Query(value = "select new com.examportal.dto.QuizDTO(q.id, q.name) from Quiz q", nativeQuery = false)
-    List<QuizDTO> getAllQuiz();
-
-
     Boolean existsByName(String quizName);
 
 }

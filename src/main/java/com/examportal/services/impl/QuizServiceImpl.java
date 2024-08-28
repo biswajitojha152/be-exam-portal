@@ -1,5 +1,6 @@
 package com.examportal.services.impl;
 
+import com.examportal.dto.QuestionDTO;
 import com.examportal.dto.QuizDTO;
 import com.examportal.dto.QuizSubmitResponse;
 import com.examportal.models.*;
@@ -13,6 +14,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class QuizServiceImpl implements QuizService {
@@ -31,24 +33,27 @@ public class QuizServiceImpl implements QuizService {
     @Override
     public List<QuizDTO> getAllQuiz(Integer categoryId) {
         if(categoryId == null){
-            return quizRepository.getAllQuiz();
+            return quizRepository.findAll().stream().map(quiz -> new QuizDTO(quiz.getId(), quiz.getName(), null, quiz.getCategory().getName(), null, quiz.getDescription(), quiz.isActive())).collect(Collectors.toList());
         }
         Optional<Category> categoryOptional =  categoryRepository.findById(categoryId);
 
-        if(categoryOptional.isEmpty()){
-            return null;
+        if(categoryOptional.isPresent()){
+
+            List<Quiz> quizList= categoryOptional.get().getQuiz();
+
+            List<QuizDTO> quizDTOList= new ArrayList<>();
+            quizList.forEach(quiz->{
+                QuizDTO quizDTO = new QuizDTO();
+                quizDTO.setId(quiz.getId());
+                quizDTO.setName(quiz.getName());
+                quizDTO.setCategoryName(quiz.getCategory().getName());
+                quizDTO.setActive(quiz.isActive());
+                quizDTOList.add(quizDTO);
+            });
+            return quizDTOList;
+        }else {
+            throw new IllegalArgumentException("category not found");
         }
-
-        List<Quiz> quizList= categoryOptional.get().getQuiz();
-
-        List<QuizDTO> quizDTOList= new ArrayList<>();
-        quizList.forEach(quiz->{
-            QuizDTO quizDTO = new QuizDTO();
-             quizDTO.setId(quiz.getId());
-             quizDTO.setName(quiz.getName());
-             quizDTOList.add(quizDTO);
-        });
-        return quizDTOList;
     }
 
     @Override
@@ -59,7 +64,7 @@ public class QuizServiceImpl implements QuizService {
 
         Optional<Category> category = categoryRepository.findById(quizDTO.getCategoryId());
         if(category.isPresent()){
-            return quizRepository.save(new Quiz(null, quizDTO.getName(), category.get(), null, null));
+            return quizRepository.save(new Quiz(null, quizDTO.getName(), category.get(), null, null,  quizDTO.getDescription(),true));
         }
         throw new IllegalArgumentException("Category does not exists.");
     }
@@ -99,5 +104,52 @@ public class QuizServiceImpl implements QuizService {
             return new QuizSubmitResponse(questions.size(), quizResult);
         }
         throw new IllegalArgumentException("Quiz Or User not found.");
+    }
+
+    @Override
+    public Quiz updateQuiz(QuizDTO quizDTO) {
+        if(quizRepository.existsByName(quizDTO.getName())){
+            return null;
+        }else {
+            Optional<Quiz> quizOptional = quizRepository.findById(quizDTO.getId());
+            if(quizOptional.isPresent()){
+                Quiz quiz = quizOptional.get();
+                quiz.setName(quizDTO.getName());
+                quiz.setActive(quizDTO.isActive());
+                return quizRepository.save(quiz);
+            }
+            throw new IllegalArgumentException("Quiz not found");
+        }
+    }
+
+    @Override
+    public Quiz updateQuizStatus(QuizDTO quizDTO) {
+        Optional<Quiz> quizOptional = quizRepository.findById(quizDTO.getId());
+        if(quizOptional.isPresent()){
+            Quiz quiz = quizOptional.get();
+            quiz.setActive(quizDTO.isActive());
+            return quizRepository.save(quiz);
+        }
+        throw new IllegalArgumentException(("Quiz Not Found."));
+    }
+
+    @Override
+    public QuizDTO getQuizDetailsById(Integer id) {
+        Optional<Quiz> quizOptional = quizRepository.findById(id);
+        if(quizOptional.isPresent()){
+            Quiz quiz = quizOptional.get();
+            QuizDTO quizDTO = new QuizDTO();
+            quizDTO.setActive(quiz.isActive());
+            quizDTO.setId(quiz.getId());
+            quizDTO.setName(quiz.getName());
+            quizDTO.setCategoryName(quiz.getCategory().getName());
+            quizDTO.setCategoryId(quiz.getCategory().getId());
+            quizDTO.setDescription(quiz.getDescription());
+            quizDTO.setQuestionDTOList(quiz.getQuestions().stream().map(question -> new QuestionDTO(question.getId(),question.getName(), quiz.getId(), question.getOption1(), question.getOption2(), question.getOption3(), question.getOption4(), question.getAnswer())).collect(Collectors.toList()));
+
+            return quizDTO;
+
+        }
+        throw new IllegalArgumentException("Quiz Not Found");
     }
 }

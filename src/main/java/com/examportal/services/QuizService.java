@@ -12,4 +12,10 @@ public interface QuizService {
     public Quiz saveQuiz(QuizDTO quizDTO);
 
     public QuizSubmitResponse submitQuiz(QuizDTO quizDTO);
+
+    public Quiz updateQuiz(QuizDTO quizDTO);
+
+    public Quiz updateQuizStatus(QuizDTO quizDTO);
+
+    public QuizDTO getQuizDetailsById(Integer id);
 }
