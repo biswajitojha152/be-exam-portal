@@ -29,9 +29,6 @@ public class QuestionController {
     @GetMapping("/getAllQuestions/{quizId}")
     public ResponseEntity<List<QuestionDTO>> getAllQuestions(@PathVariable("quizId") Integer quizId){
         List<QuestionDTO> questionDTOList = questionService.getAllQuestions(quizId);
-        if(questionDTOList == null){
-            throw new IllegalArgumentException("Quiz Not found By Quiz Id.");
-        }
         return ResponseEntity.ok(questionDTOList);
     }
 }

@@ -11,6 +11,7 @@ import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Objects;
 
 @Service
 public class FileServiceImpl implements FileService {
@@ -23,7 +24,7 @@ public class FileServiceImpl implements FileService {
                 documents.mkdir();
             }
 
-            String fileName = getOriginalFileNameWithTimeStamp(file.getOriginalFilename());
+            String fileName = getOriginalFileNameWithTimeStamp(Objects.requireNonNull(file.getOriginalFilename()));
 
             Files.copy(
                     file.getInputStream(),

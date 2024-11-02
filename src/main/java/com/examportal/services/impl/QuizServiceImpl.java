@@ -10,6 +10,7 @@ import com.examportal.repository.QuizTrailRepository;
 import com.examportal.repository.UserRepository;
 import com.examportal.services.QuizService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -33,7 +34,7 @@ public class QuizServiceImpl implements QuizService {
     @Override
     public List<QuizDTO> getAllQuiz(Integer categoryId) {
         if(categoryId == null){
-            return quizRepository.findAll().stream().map(quiz -> new QuizDTO(quiz.getId(), quiz.getName(), null, quiz.getCategory().getName(), null, quiz.getDescription(), quiz.isActive())).collect(Collectors.toList());
+            return quizRepository.findAll(Sort.by(Sort.Direction.DESC, "id")).stream().map(quiz -> new QuizDTO(quiz.getId(), quiz.getName(), null, quiz.getCategory().getName(), null, quiz.getDescription(), quiz.isActive())).collect(Collectors.toList());
         }
         Optional<Category> categoryOptional =  categoryRepository.findById(categoryId);
 
@@ -108,18 +109,16 @@ public class QuizServiceImpl implements QuizService {
 
     @Override
     public Quiz updateQuiz(QuizDTO quizDTO) {
-        if(quizRepository.existsByName(quizDTO.getName())){
-            return null;
-        }else {
-            Optional<Quiz> quizOptional = quizRepository.findById(quizDTO.getId());
-            if(quizOptional.isPresent()){
-                Quiz quiz = quizOptional.get();
-                quiz.setName(quizDTO.getName());
-                quiz.setActive(quizDTO.isActive());
-                return quizRepository.save(quiz);
-            }
-            throw new IllegalArgumentException("Quiz not found");
+        Optional<Quiz> quizOptional = quizRepository.findById(quizDTO.getId());
+
+        if(quizOptional.isPresent()){
+            Quiz quiz = quizOptional.get();
+            quiz.setName(quizDTO.getName());
+            quiz.setActive(quizDTO.isActive());
+            quiz.setDescription(quizDTO.getDescription());
+            return quizRepository.save(quiz);
         }
+        throw new IllegalArgumentException("Quiz Not found");
     }
 
     @Override

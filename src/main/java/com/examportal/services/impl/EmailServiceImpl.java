@@ -32,7 +32,7 @@ public class EmailServiceImpl implements EmailService {
             return true;
         }
         catch (Exception e){
-            e.printStackTrace();
+            System.out.println(e.getMessage());
             return false;
         }
     }

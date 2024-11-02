@@ -39,10 +39,7 @@ public class QuizController {
 
     @PutMapping("/updateQuiz")
     public ResponseEntity<MessageResponse> updateQuiz(@RequestBody QuizDTO quizDTO){
-        Quiz result =quizService.updateQuiz(quizDTO);
-        if(result == null){
-            return ResponseEntity.badRequest().body(new MessageResponse("Quiz name already exists."));
-        }
+        quizService.updateQuiz(quizDTO);
 
         return ResponseEntity.ok(new MessageResponse("Quiz updated successfully."));
     }
