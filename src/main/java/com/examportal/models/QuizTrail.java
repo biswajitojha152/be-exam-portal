@@ -17,15 +17,21 @@ public class QuizTrail {
     private User user;
 
     private Integer totalQuestions;
+
     private Integer attemptedQuestions;
+
     private Integer correctAnswer;
+
     @Temporal(TemporalType.TIMESTAMP)
     private Date attemptedAt;
+
+    @Enumerated(EnumType.STRING)
+    private EStatus status;
 
     public QuizTrail() {
     }
 
-    public QuizTrail(Integer id, Quiz quiz, User user, Integer totalQuestions, Integer attemptedQuestions, Integer correctAnswer, Date attemptedAt) {
+    public QuizTrail(Integer id, Quiz quiz, User user, Integer totalQuestions, Integer attemptedQuestions, Integer correctAnswer, Date attemptedAt, EStatus status) {
         this.id = id;
         this.quiz = quiz;
         this.user = user;
@@ -33,6 +39,7 @@ public class QuizTrail {
         this.attemptedQuestions = attemptedQuestions;
         this.correctAnswer = correctAnswer;
         this.attemptedAt = attemptedAt;
+        this.status = status;
     }
 
     public Integer getId() {
@@ -89,5 +96,13 @@ public class QuizTrail {
 
     public void setAttemptedAt(Date attemptedAt) {
         this.attemptedAt = attemptedAt;
+    }
+
+    public EStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(EStatus status) {
+        this.status = status;
     }
 }

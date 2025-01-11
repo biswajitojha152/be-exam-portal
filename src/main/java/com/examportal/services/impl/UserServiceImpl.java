@@ -75,8 +75,7 @@ public class UserServiceImpl implements UserService {
                 signUpRequest.getPhone(),
                 signUpRequest.getProfilePicture(),
                 true,
-                userRole,
-                null
+                userRole
         );
 
         boolean credSendResult = emailService.sendMail(
@@ -115,6 +114,8 @@ public class UserServiceImpl implements UserService {
 
         return ResponseEntity.ok(
             new JwtResponse(
+                    userDetails.getFirstName(),
+                    userDetails.getLastName(),
                     jwt,
                     userDetails.getUsername(),
                     userDetails.getAuthorities().stream()

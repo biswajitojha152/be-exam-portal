@@ -40,6 +40,8 @@ public class User {
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     private List<QuizTrail> quizTrails;
 
+    @OneToMany(mappedBy = "updatedBy", fetch = FetchType.LAZY)
+    private List<AuditLog> auditLogs;
 
     public User() {
     }
@@ -53,8 +55,7 @@ public class User {
             String phone,
             String profilePicture,
             boolean isActive,
-            Role role,
-            List<QuizTrail> quizTrails
+            Role role
     ) {
         this.username = username;
         this.password = password;
@@ -65,7 +66,6 @@ public class User {
         this.profilePicture = profilePicture;
         this.isActive = isActive;
         this.role = role;
-        this.quizTrails = quizTrails;
     }
 
     public Long getId() {
@@ -154,5 +154,13 @@ public class User {
 
     public void setQuizTrails(List<QuizTrail> quizTrails) {
         this.quizTrails = quizTrails;
+    }
+
+    public List<AuditLog> getAuditLogs() {
+        return auditLogs;
+    }
+
+    public void setAuditLogs(List<AuditLog> auditLogs) {
+        this.auditLogs = auditLogs;
     }
 }

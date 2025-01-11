@@ -1,5 +1,6 @@
 package com.examportal.services.impl;
 
+import com.examportal.dto.PaginatedResponse;
 import com.examportal.dto.QuestionDTO;
 import com.examportal.dto.QuizDTO;
 import com.examportal.dto.QuizSubmitResponse;
@@ -9,8 +10,13 @@ import com.examportal.repository.QuizRepository;
 import com.examportal.repository.QuizTrailRepository;
 import com.examportal.repository.UserRepository;
 import com.examportal.services.QuizService;
+import jakarta.persistence.criteria.Predicate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -32,29 +38,44 @@ public class QuizServiceImpl implements QuizService {
     private UserRepository userRepository;
 
     @Override
-    public List<QuizDTO> getAllQuiz(Integer categoryId) {
-        if(categoryId == null){
-            return quizRepository.findAll(Sort.by(Sort.Direction.DESC, "id")).stream().map(quiz -> new QuizDTO(quiz.getId(), quiz.getName(), null, quiz.getCategory().getName(), null, quiz.getDescription(), quiz.isActive())).collect(Collectors.toList());
+    public PaginatedResponse<QuizDTO> getAllQuiz(Integer pageNo, Integer pageSize, Integer categoryId, String searchInput) {
+
+        if(categoryId == null  || categoryRepository.existsById(categoryId)){
+            Specification<Quiz> specification = (root, query, criteriaBuilder) ->{
+                Predicate predicate = criteriaBuilder.conjunction();
+                if(searchInput !=null){
+                    Predicate namePredicate = criteriaBuilder.like(root.get("name"), "%"+searchInput+"%");
+                    Predicate descriptonPredicate = criteriaBuilder.like(root.get("description"), "%"+searchInput+"%");
+                    predicate = criteriaBuilder.and(predicate, criteriaBuilder.or(namePredicate, descriptonPredicate));
+                }
+                if(categoryId != null){
+                    predicate = criteriaBuilder.and(predicate, criteriaBuilder.equal(root.get("category").get("id"), categoryId));
+                }
+                return predicate;
+            };
+            PaginatedResponse<QuizDTO> paginatedResponse = new PaginatedResponse<>();
+            if(pageNo==0 && pageSize==0){
+                List<Object[]> quizList = quizRepository.findQuizListWithQuestionCount(specification);
+                paginatedResponse.setLastPage(true);
+                paginatedResponse.setData(quizList.stream().map(quiz -> new QuizDTO((Integer) quiz[0], (String) quiz[1], null,(String) quiz[3], null, (String) quiz[5], null,(boolean) quiz[7])).collect(Collectors.toList()));
+                paginatedResponse.setPageNumber(0);
+                paginatedResponse.setPageSize(quizList.size());
+                paginatedResponse.setTotalElements(quizList.size());
+                paginatedResponse.setTotalPages(1);
+            }else {
+                Pageable pageable = PageRequest.of(pageNo, pageSize, Sort.by(Sort.Direction.DESC, "id"));
+                Page<Object[]> page = quizRepository.findQuizListWithQuestionCount(specification, pageable);
+                paginatedResponse.setData(page.getContent().stream().map(quiz->new QuizDTO((Integer) quiz[0], (String) quiz[1], null, (String)quiz[3], null, (String) quiz[5], null, (boolean) quiz[7])).collect(Collectors.toList()));
+                paginatedResponse.setLastPage(page.isLast());
+                paginatedResponse.setPageNumber(page.getNumber());
+                paginatedResponse.setPageSize(page.getSize());
+                paginatedResponse.setTotalElements(page.getTotalElements());
+                paginatedResponse.setTotalPages(page.getTotalPages());
+            }
+            return paginatedResponse;
         }
-        Optional<Category> categoryOptional =  categoryRepository.findById(categoryId);
 
-        if(categoryOptional.isPresent()){
-
-            List<Quiz> quizList= categoryOptional.get().getQuiz();
-
-            List<QuizDTO> quizDTOList= new ArrayList<>();
-            quizList.forEach(quiz->{
-                QuizDTO quizDTO = new QuizDTO();
-                quizDTO.setId(quiz.getId());
-                quizDTO.setName(quiz.getName());
-                quizDTO.setCategoryName(quiz.getCategory().getName());
-                quizDTO.setActive(quiz.isActive());
-                quizDTOList.add(quizDTO);
-            });
-            return quizDTOList;
-        }else {
-            throw new IllegalArgumentException("category not found");
-        }
+        throw new IllegalArgumentException("Category not found with id: "+ categoryId);
     }
 
     @Override
@@ -99,8 +120,7 @@ public class QuizServiceImpl implements QuizService {
                 }
             }
 
-
-            quizTrailRepository.save(new QuizTrail(null, quiz.get(), user.get(), questions.size(), attemptedQuestions, quizResult, new Date()));
+            quizTrailRepository.save(new QuizTrail(null, quiz.get(), user.get(), questions.size(), attemptedQuestions, quizResult, new Date(), isPassed(questions.size(), quizResult) ? EStatus.PASSED : EStatus.FAILED));
 
             return new QuizSubmitResponse(questions.size(), quizResult);
         }
@@ -150,5 +170,9 @@ public class QuizServiceImpl implements QuizService {
 
         }
         throw new IllegalArgumentException("Quiz Not Found");
+    }
+
+    private boolean isPassed(Integer totalQuestions, Integer correctAnswers){
+        return (correctAnswers / totalQuestions * 100 >= 33);
     }
 }

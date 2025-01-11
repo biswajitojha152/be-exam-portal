@@ -1,17 +1,25 @@
 package com.examportal.dto;
 
+import jakarta.validation.constraints.NotBlank;
+
 public class CategoryDTO {
     private Integer id;
+    @NotBlank
     private String name;
-    private Long quizCount;
+    @NotBlank
+    private String description;
+    private boolean isActive;
+    private CategoryQuizCountDTO categoryQuizCountDTO;
 
     public CategoryDTO() {
     }
 
-    public CategoryDTO(Integer id, String name, Long quizCount) {
+    public CategoryDTO(Integer id, String name, String description, boolean isActive, CategoryQuizCountDTO categoryQuizCountDTO) {
         this.id = id;
         this.name = name;
-        this.quizCount = quizCount;
+        this.description = description;
+        this.isActive = isActive;
+        this.categoryQuizCountDTO = categoryQuizCountDTO;
     }
 
     public Integer getId() {
@@ -30,11 +38,27 @@ public class CategoryDTO {
         this.name = name;
     }
 
-    public Long getQuizCount() {
-        return quizCount;
+    public String getDescription() {
+        return description;
     }
 
-    public void setQuizCount(Long quizCount) {
-        this.quizCount = quizCount;
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public boolean getIsActive() {
+        return isActive;
+    }
+
+    public void setIsActive(boolean isActive) {
+        this.isActive = isActive;
+    }
+
+    public CategoryQuizCountDTO getCategoryQuizCountDTO() {
+        return categoryQuizCountDTO;
+    }
+
+    public void setCategoryQuizCountDTO(CategoryQuizCountDTO categoryQuizCountDTO) {
+        this.categoryQuizCountDTO = categoryQuizCountDTO;
     }
 }

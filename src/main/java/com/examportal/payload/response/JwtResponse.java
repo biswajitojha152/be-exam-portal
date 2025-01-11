@@ -1,6 +1,8 @@
 package com.examportal.payload.response;
 
 public class JwtResponse {
+    private String firstName;
+    private String lastName;
     private String token;
     private String type = "Bearer";
     private String username;
@@ -10,11 +12,29 @@ public class JwtResponse {
     public JwtResponse() {
     }
 
-    public JwtResponse(String token, String username, String role, String profileUrl) {
+    public JwtResponse(String firstName, String lastName, String token, String username, String role, String profileUrl) {
+        this.firstName = firstName;
+        this.lastName = lastName;
         this.token = token;
         this.username = username;
         this.role = role;
         this.profileUrl= profileUrl;
+    }
+
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
     }
 
     public String getToken() {

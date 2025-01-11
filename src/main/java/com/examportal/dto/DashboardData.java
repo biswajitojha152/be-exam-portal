@@ -4,14 +4,15 @@ public class DashboardData {
     private Long numberOfUser;
     private Long numberOfQuiz;
     private Long numberOfCategory;
-
+    private AttemptsDTO attemptsDTO;
     public DashboardData() {
     }
 
-    public DashboardData(Long numberOfUser, Long numberOfQuiz, Long numberOfCategory) {
+    public DashboardData(Long numberOfUser, Long numberOfQuiz, Long numberOfCategory, AttemptsDTO attemptsDTO) {
         this.numberOfUser = numberOfUser;
         this.numberOfQuiz = numberOfQuiz;
         this.numberOfCategory = numberOfCategory;
+        this.attemptsDTO = attemptsDTO;
     }
 
     public Long getNumberOfUser() {
@@ -36,5 +37,13 @@ public class DashboardData {
 
     public void setNumberOfCategory(Long numberOfCategory) {
         this.numberOfCategory = numberOfCategory;
+    }
+
+    public AttemptsDTO getAttemptsDTO() {
+        return attemptsDTO;
+    }
+
+    public void setAttemptsDTO(AttemptsDTO attemptsDTO) {
+        this.attemptsDTO = attemptsDTO;
     }
 }

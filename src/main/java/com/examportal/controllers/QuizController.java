@@ -1,5 +1,6 @@
 package com.examportal.controllers;
 
+import com.examportal.dto.PaginatedResponse;
 import com.examportal.dto.QuizDTO;
 import com.examportal.models.Quiz;
 import com.examportal.payload.response.MessageResponse;
@@ -18,9 +19,9 @@ public class QuizController {
     private QuizService quizService;
 
     @GetMapping("/getAllQuiz")
-    public ResponseEntity<List<QuizDTO>> getAllQuiz(@RequestParam(required = false) Integer categoryId) {
+    public ResponseEntity<PaginatedResponse<QuizDTO>> getAllQuiz(@RequestParam(required = false, defaultValue = "0") Integer pageNo, @RequestParam(required = false, defaultValue = "0") Integer pageSize, @RequestParam(required = false) Integer categoryId, @RequestParam(required = false) String searchInput) {
 
-        return ResponseEntity.ok(quizService.getAllQuiz(categoryId));
+        return ResponseEntity.ok(quizService.getAllQuiz(pageNo, pageSize, categoryId, searchInput));
     }
 
     @PostMapping("/saveQuiz")

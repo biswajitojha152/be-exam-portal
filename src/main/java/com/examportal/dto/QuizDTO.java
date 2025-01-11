@@ -9,6 +9,7 @@ public class QuizDTO {
     private String categoryName;
     private List<QuestionDTO> questionDTOList;
     private String description;
+    private QuizQuestionCountDTO quizQuestionCountDTO;
     private boolean isActive;
 
     public QuizDTO() {
@@ -19,13 +20,14 @@ public class QuizDTO {
         this.name = name;
     }
 
-    public QuizDTO(Integer id, String name, Integer categoryId, String categoryName, List<QuestionDTO> questionDTOList, String description,boolean isActive) {
+    public QuizDTO(Integer id, String name, Integer categoryId, String categoryName, List<QuestionDTO> questionDTOList, String description, QuizQuestionCountDTO quizQuestionCountDTO, boolean isActive) {
         this.id = id;
         this.name = name;
         this.categoryId = categoryId;
         this.categoryName = categoryName;
         this.questionDTOList = questionDTOList;
         this.description = description;
+        this.quizQuestionCountDTO = quizQuestionCountDTO;
         this.isActive = isActive;
     }
 
@@ -75,6 +77,14 @@ public class QuizDTO {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public QuizQuestionCountDTO getQuizQuestionCountDTO() {
+        return quizQuestionCountDTO;
+    }
+
+    public void setQuizQuestionCountDTO(QuizQuestionCountDTO quizQuestionCountDTO) {
+        this.quizQuestionCountDTO = quizQuestionCountDTO;
     }
 
     public boolean isActive() {
