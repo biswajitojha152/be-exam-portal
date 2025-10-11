@@ -7,15 +7,17 @@ public class EntitiesStatusUpdateTrailDTO <T>{
     private String updatedBy;
     private Instant updatedAt;
     private List<T> affectedEntities;
+    private String remark;
     private boolean isActive;
 
     public EntitiesStatusUpdateTrailDTO() {
     }
 
-    public EntitiesStatusUpdateTrailDTO(String updatedBy, Instant updatedAt, List<T> affectedEntities, boolean isActive) {
+    public EntitiesStatusUpdateTrailDTO(String updatedBy, Instant updatedAt, List<T> affectedEntities, String remark, boolean isActive) {
         this.updatedBy = updatedBy;
         this.updatedAt = updatedAt;
         this.affectedEntities = affectedEntities;
+        this.remark = remark;
         this.isActive = isActive;
     }
 
@@ -41,6 +43,14 @@ public class EntitiesStatusUpdateTrailDTO <T>{
 
     public void setAffectedEntities(List<T> affectedEntities) {
         this.affectedEntities = affectedEntities;
+    }
+
+    public String getRemark() {
+        return remark;
+    }
+
+    public void setRemark(String remark) {
+        this.remark = remark;
     }
 
     public boolean getIsActive() {

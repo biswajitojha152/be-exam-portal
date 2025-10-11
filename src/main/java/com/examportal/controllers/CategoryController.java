@@ -1,15 +1,13 @@
 package com.examportal.controllers;
 
-import com.examportal.dto.CategoryDTO;
-import com.examportal.dto.EntityUpdateTrailDTO;
-import com.examportal.dto.ResponseDTO;
-import com.examportal.dto.UpdateCategoriesStatusDTO;
+import com.examportal.dto.*;
 import com.examportal.models.Category;
 import com.examportal.payload.response.MessageResponse;
 import com.examportal.services.CategoryService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
@@ -44,9 +42,9 @@ public class CategoryController {
         return ResponseEntity.badRequest().body(new MessageResponse(categoryUpdateResponse.getMessage()));
     }
 
-    @PutMapping("/updateCategoryStatus")
-    public ResponseEntity<MessageResponse> updateCategoryStatus(@RequestBody UpdateCategoriesStatusDTO updateCategoriesStatusDTO){
-        ResponseDTO<List<Category>> categoriesUpdateStatusResponse = categoryService.updateCategoriesStatus(updateCategoriesStatusDTO);
+    @PutMapping("/updateCategoriesStatus")
+    public ResponseEntity<MessageResponse> updateCategoriesStatus(@RequestBody UpdateEntitiesStatusDTO<Integer> updateEntitiesStatusDTO){
+        ResponseDTO<List<Category>> categoriesUpdateStatusResponse = categoryService.updateCategoriesStatus(updateEntitiesStatusDTO);
         if(categoriesUpdateStatusResponse.isSuccess()){
             return ResponseEntity.ok(new MessageResponse(categoriesUpdateStatusResponse.getMessage()));
         }
@@ -55,12 +53,11 @@ public class CategoryController {
 
     @GetMapping("/getCategoryUpdateAuditLog")
     public ResponseEntity<EntityUpdateTrailDTO<CategoryDTO>> getCategoryAuditLog(@RequestParam Integer categoryId){
-        System.out.println(categoryId + "CategoryID");
         return ResponseEntity.ok(categoryService.getCategoryUpdateTrailDTO(categoryId));
     }
 
     @GetMapping("/getCategoryStatusUpdateAuditLog")
-    public ResponseEntity<?> getCategoriesStatusAuditLog(){
+    public ResponseEntity<List<EntitiesStatusUpdateTrailDTO<CategoryDTO>>> getCategoriesStatusAuditLog(){
         return ResponseEntity.ok(categoryService.getCategoriesStatusUpdateTrailDTO());
     }
 }

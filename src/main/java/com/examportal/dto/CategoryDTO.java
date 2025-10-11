@@ -2,24 +2,26 @@ package com.examportal.dto;
 
 import jakarta.validation.constraints.NotBlank;
 
-public class CategoryDTO {
+import java.io.Serializable;
+
+public class CategoryDTO implements Serializable {
     private Integer id;
     @NotBlank
     private String name;
     @NotBlank
     private String description;
     private boolean isActive;
-    private CategoryQuizCountDTO categoryQuizCountDTO;
+    private QuizCountDTO quizCountDTO;
 
     public CategoryDTO() {
     }
 
-    public CategoryDTO(Integer id, String name, String description, boolean isActive, CategoryQuizCountDTO categoryQuizCountDTO) {
+    public CategoryDTO(Integer id, String name, String description, boolean isActive, QuizCountDTO quizCountDTO) {
         this.id = id;
         this.name = name;
         this.description = description;
         this.isActive = isActive;
-        this.categoryQuizCountDTO = categoryQuizCountDTO;
+        this.quizCountDTO = quizCountDTO;
     }
 
     public Integer getId() {
@@ -54,11 +56,11 @@ public class CategoryDTO {
         this.isActive = isActive;
     }
 
-    public CategoryQuizCountDTO getCategoryQuizCountDTO() {
-        return categoryQuizCountDTO;
+    public QuizCountDTO getQuizCountDTO() {
+        return quizCountDTO;
     }
 
-    public void setCategoryQuizCountDTO(CategoryQuizCountDTO categoryQuizCountDTO) {
-        this.categoryQuizCountDTO = categoryQuizCountDTO;
+    public void setQuizCountDTO(QuizCountDTO quizCountDTO) {
+        this.quizCountDTO = quizCountDTO;
     }
 }

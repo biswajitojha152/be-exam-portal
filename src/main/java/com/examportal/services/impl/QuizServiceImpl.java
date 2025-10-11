@@ -1,22 +1,27 @@
 package com.examportal.services.impl;
 
-import com.examportal.dto.PaginatedResponse;
-import com.examportal.dto.QuestionDTO;
-import com.examportal.dto.QuizDTO;
-import com.examportal.dto.QuizSubmitResponse;
+import com.examportal.dto.*;
+import com.examportal.dto.projection.QuizIdsWithQuizCountProjection;
+import com.examportal.dto.projection.QuizProjection;
+import com.examportal.dto.projection.QuizProjectionWithQuestionCount;
+import com.examportal.helper.JsonConverter;
 import com.examportal.models.*;
 import com.examportal.repository.CategoryRepository;
 import com.examportal.repository.QuizRepository;
 import com.examportal.repository.QuizTrailRepository;
 import com.examportal.repository.UserRepository;
+import com.examportal.services.AuditLogService;
 import com.examportal.services.QuizService;
-import jakarta.persistence.criteria.Predicate;
+import com.examportal.session.InMemoryQuizProgressStore;
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -37,41 +42,57 @@ public class QuizServiceImpl implements QuizService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private AuditLogService auditLogService;
+
+    @Autowired
+    private JsonConverter jsonConverter;
+
+    @Autowired
+    private InMemoryQuizProgressStore inMemoryQuizProgressStore;
+
     @Override
     public PaginatedResponse<QuizDTO> getAllQuiz(Integer pageNo, Integer pageSize, Integer categoryId, String searchInput) {
-
         if(categoryId == null  || categoryRepository.existsById(categoryId)){
-            Specification<Quiz> specification = (root, query, criteriaBuilder) ->{
-                Predicate predicate = criteriaBuilder.conjunction();
-                if(searchInput !=null){
-                    Predicate namePredicate = criteriaBuilder.like(root.get("name"), "%"+searchInput+"%");
-                    Predicate descriptonPredicate = criteriaBuilder.like(root.get("description"), "%"+searchInput+"%");
-                    predicate = criteriaBuilder.and(predicate, criteriaBuilder.or(namePredicate, descriptonPredicate));
-                }
-                if(categoryId != null){
-                    predicate = criteriaBuilder.and(predicate, criteriaBuilder.equal(root.get("category").get("id"), categoryId));
-                }
-                return predicate;
-            };
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            boolean isAdmin = authentication.getAuthorities().stream().anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_"+ERole.ADMIN.name()));
             PaginatedResponse<QuizDTO> paginatedResponse = new PaginatedResponse<>();
-            if(pageNo==0 && pageSize==0){
-                List<Object[]> quizList = quizRepository.findQuizListWithQuestionCount(specification);
-                paginatedResponse.setLastPage(true);
-                paginatedResponse.setData(quizList.stream().map(quiz -> new QuizDTO((Integer) quiz[0], (String) quiz[1], null,(String) quiz[3], null, (String) quiz[5], null,(boolean) quiz[7])).collect(Collectors.toList()));
-                paginatedResponse.setPageNumber(0);
-                paginatedResponse.setPageSize(quizList.size());
-                paginatedResponse.setTotalElements(quizList.size());
-                paginatedResponse.setTotalPages(1);
-            }else {
-                Pageable pageable = PageRequest.of(pageNo, pageSize, Sort.by(Sort.Direction.DESC, "id"));
-                Page<Object[]> page = quizRepository.findQuizListWithQuestionCount(specification, pageable);
-                paginatedResponse.setData(page.getContent().stream().map(quiz->new QuizDTO((Integer) quiz[0], (String) quiz[1], null, (String)quiz[3], null, (String) quiz[5], null, (boolean) quiz[7])).collect(Collectors.toList()));
-                paginatedResponse.setLastPage(page.isLast());
-                paginatedResponse.setPageNumber(page.getNumber());
-                paginatedResponse.setPageSize(page.getSize());
-                paginatedResponse.setTotalElements(page.getTotalElements());
-                paginatedResponse.setTotalPages(page.getTotalPages());
-            }
+                if(pageNo==0 && pageSize==0){
+                    if(isAdmin){
+                        List<QuizProjectionWithQuestionCount> quizProjectionsList = quizRepository.findQuizListWithQuestionCount(searchInput, categoryId, Sort.by(Sort.Direction.DESC, "id"));
+                        paginatedResponse.setData(quizProjectionsList.stream().map(quizProjection -> new QuizDTO(quizProjection.getId(), quizProjection.getName(), quizProjection.getCategoryId(),quizProjection.getCategoryName(), null, quizProjection.getDescription(), new QuizQuestionCountDTO(quizProjection.getTotalQuestionCount(), quizProjection.getActiveQuestionCount(), quizProjection.getInActiveQuestionCount()), quizProjection.getAttemptableCount(), quizProjection.getDuration(), quizProjection.getIsActive())).collect(Collectors.toList()));
+                        paginatedResponse.setPageSize(quizProjectionsList.size());
+                        paginatedResponse.setTotalElements(quizProjectionsList.size());
+                    }else {
+                        List<QuizProjection> quizList= quizRepository.findQuizList(searchInput, categoryId, Sort.by(Sort.Direction.DESC, "id"));
+                        paginatedResponse.setData(quizList.stream().map(quizProjection -> new QuizDTO(quizProjection.getId(), quizProjection.getName(), null, quizProjection.getCategoryName(), null, quizProjection.getDescription(), null, quizProjection.getAttemptableCount(), quizProjection.getDuration(), false)).collect(Collectors.toList()));
+                        paginatedResponse.setPageSize(quizList.size());
+                        paginatedResponse.setTotalElements(quizList.size());
+                    }
+                    paginatedResponse.setIsLastPage(true);
+                    paginatedResponse.setPageNumber(0);
+                    paginatedResponse.setTotalPages(1);
+                }else {
+                    Pageable pageable = PageRequest.of(pageNo, pageSize, Sort.by(Sort.Direction.DESC, "id"));
+                    if(isAdmin){
+                        Page<QuizProjectionWithQuestionCount> page = quizRepository.findQuizListWithQuestionCount(searchInput, categoryId, pageable);
+                        paginatedResponse.setData(page.getContent().stream().map(quizProjection -> new QuizDTO(quizProjection.getId(), quizProjection.getName(), quizProjection.getCategoryId(),quizProjection.getCategoryName(), null, quizProjection.getDescription(), new QuizQuestionCountDTO(quizProjection.getTotalQuestionCount(), quizProjection.getActiveQuestionCount(), quizProjection.getInActiveQuestionCount()), quizProjection.getAttemptableCount(), quizProjection.getDuration(), quizProjection.getIsActive())).collect(Collectors.toList()));
+                        paginatedResponse.setIsLastPage(page.isLast());
+                        paginatedResponse.setPageNumber(page.getNumber());
+                        paginatedResponse.setPageSize(page.getSize());
+                        paginatedResponse.setTotalElements(page.getTotalElements());
+                        paginatedResponse.setTotalPages(page.getTotalPages());
+                    }else {
+                       Page<QuizProjection> page = quizRepository.findQuizList(searchInput, categoryId, pageable);
+                        paginatedResponse.setData(page.getContent().stream().map(quizProjection -> new QuizDTO(quizProjection.getId(), quizProjection.getName(), null,quizProjection.getCategoryName(), null, quizProjection.getDescription(), null, quizProjection.getAttemptableCount(), quizProjection.getDuration(), false)).collect(Collectors.toList()));
+                        paginatedResponse.setIsLastPage(page.isLast());
+                        paginatedResponse.setPageNumber(page.getNumber());
+                        paginatedResponse.setPageSize(page.getSize());
+                        paginatedResponse.setTotalElements(page.getTotalElements());
+                        paginatedResponse.setTotalPages(page.getTotalPages());
+                    }
+
+                }
             return paginatedResponse;
         }
 
@@ -79,77 +100,84 @@ public class QuizServiceImpl implements QuizService {
     }
 
     @Override
-    public Quiz saveQuiz(QuizDTO quizDTO) {
+    @CacheEvict(value = "categories",allEntries = true)
+    public ResponseDTO<Quiz> saveQuiz(QuizDTO quizDTO) {
         if(quizRepository.existsByName(quizDTO.getName())){
-            return null;
+            return new ResponseDTO<>(false, "Quiz name already exists.", null);
         }
 
         Optional<Category> category = categoryRepository.findById(quizDTO.getCategoryId());
         if(category.isPresent()){
-            return quizRepository.save(new Quiz(null, quizDTO.getName(), category.get(), null, null,  quizDTO.getDescription(),true));
+            Quiz result = quizRepository.save(new Quiz(null, quizDTO.getName(), category.get(), null, null,  quizDTO.getDescription(), quizDTO.getAttemptableCount(), quizDTO.getDuration(), true));
+            auditLogService.saveAuditLog(EOperation.CREATE, new Quiz(result.getId(), result.getName(), new Category(category.get().getId(), category.get().getName(), null, null, category.get().getIsActive()), null, null, result.getDescription(), result.getAttemptableCount(), result.getDuration(), result.getIsActive()));
+            return new ResponseDTO<>(true, "Quiz saved successfully.", result);
         }
         throw new IllegalArgumentException("Category does not exists.");
     }
 
     @Override
-    public QuizSubmitResponse submitQuiz(QuizDTO quizDTO) {
-        Optional<Quiz> quiz = quizRepository.findById(quizDTO.getId());
-        Optional<User> user = userRepository.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
-        if(quiz.isPresent() && user.isPresent()){
-            List<Question> questions = quiz.get().getQuestions();
-
-            int quizResult = 0;
-            int attemptedQuestions=0;
-
-            int quizDTOSize= quizDTO.getQuestionDTOList().size();
-
-            for(int len=0; len < quizDTOSize; len++){
-                if(
-                        Objects.equals(quizDTO.getQuestionDTOList().get(len).getId(), questions.get(len).getId())
-                                &&
-                                (quizDTO.getQuestionDTOList().get(len).getAnswer()==null || Arrays.asList(questions.get(len).getOption1(), questions.get(len).getOption2(), questions.get(len).getOption3(), questions.get(len).getOption4()).contains(quizDTO.getQuestionDTOList().get(len).getAnswer()))
-                ){
-                    if(quizDTO.getQuestionDTOList().get(len).getAnswer()!=null && quizDTO.getQuestionDTOList().get(len).getAnswer().equals(questions.get(len).getAnswer())){
-                        quizResult++;
-                        attemptedQuestions++;
-                    }else if(quizDTO.getQuestionDTOList().get(len).getAnswer()!=null) {
-                        attemptedQuestions++;
-                    }
-                }else{
-                    throw new IllegalArgumentException("Question id does not match.");
-                }
-            }
-
-            quizTrailRepository.save(new QuizTrail(null, quiz.get(), user.get(), questions.size(), attemptedQuestions, quizResult, new Date(), isPassed(questions.size(), quizResult) ? EStatus.PASSED : EStatus.FAILED));
-
-            return new QuizSubmitResponse(questions.size(), quizResult);
-        }
-        throw new IllegalArgumentException("Quiz Or User not found.");
-    }
-
-    @Override
-    public Quiz updateQuiz(QuizDTO quizDTO) {
-        Optional<Quiz> quizOptional = quizRepository.findById(quizDTO.getId());
-
-        if(quizOptional.isPresent()){
-            Quiz quiz = quizOptional.get();
-            quiz.setName(quizDTO.getName());
-            quiz.setActive(quizDTO.isActive());
+    public ResponseDTO<Quiz> updateQuiz(QuizDTO quizDTO) {
+        Quiz quiz = quizRepository.findById(quizDTO.getId()).orElseThrow(()-> new IllegalArgumentException("Quiz id does not exists."));
+        if(hasChanges(quiz, quizDTO)){
             quiz.setDescription(quizDTO.getDescription());
-            return quizRepository.save(quiz);
+            quiz.setAttemptableCount(quizDTO.getAttemptableCount());
+            quiz.setDuration(quizDTO.getDuration());
+            Quiz result = quizRepository.save(quiz);
+            auditLogService.saveAuditLog(EOperation.UPDATE, new Quiz(result.getId(), result.getName(), new Category(null, quiz.getCategory().getName(), null, null,quiz.getCategory().getIsActive()), null, null, result.getDescription(), result.getAttemptableCount(), result.getDuration(), result.getIsActive()));
+            return new ResponseDTO<>(true, "Quiz updated successfully.", result);
+        }else {
+            return new ResponseDTO<>(true, "No changes were made as the data is already up to date.", null);
         }
-        throw new IllegalArgumentException("Quiz Not found");
     }
 
     @Override
-    public Quiz updateQuizStatus(QuizDTO quizDTO) {
-        Optional<Quiz> quizOptional = quizRepository.findById(quizDTO.getId());
-        if(quizOptional.isPresent()){
-            Quiz quiz = quizOptional.get();
-            quiz.setActive(quizDTO.isActive());
-            return quizRepository.save(quiz);
+    public QuizSubmitResponse submitQuiz(QuizDTO quizDTO) {
+        Quiz quiz = quizRepository.findById(quizDTO.getId()).orElseThrow(()-> new IllegalArgumentException("Quiz not exits with id: "+quizDTO.getId()));
+//        if(quizDTO.getQuestionDTOList().size() != quiz.getAttemptableCount()){
+//            throw new IllegalArgumentException("Question DTO size is not same as attempt count.");
+//        }
+        List<Question> questionList = quiz.getQuestions();
+        QuizSubmitResponse quizSubmitResponse = new QuizSubmitResponse();
+    quizSubmitResponse.setTotalMark(10); // convert to integer or vice versa still pending
+        Map<Integer, Question> questionMap = new HashMap<>();
+        questionList.forEach(question -> {
+            questionMap.put(question.getId(), question);
+        });
+
+        quizDTO.getQuestionDTOList().forEach(questionDTO -> {
+            Optional<Question> questionOptional = Optional.ofNullable(questionMap.get(questionDTO.getId()));
+            if(questionOptional.isPresent()){
+                Option correctOption = questionOptional.get().getOptionList().stream().filter(Option::getIsCorrect).findFirst().orElseThrow(()-> new RuntimeException("No Correct Answer Found."));
+                Optional<OptionDTO> selectedOption = questionDTO.getOptionDTOList().stream().filter(OptionDTO::getIsCorrect).findFirst();
+                if(selectedOption.isPresent() && Objects.equals(selectedOption.get().getId(), correctOption.getId())){
+                    quizSubmitResponse.setSecuredMark(quizSubmitResponse.getSecuredMark() != null ? quizSubmitResponse.getSecuredMark()+1 : 1);
+                }
+            }else {
+                throw new IllegalArgumentException("Question does not exits with id: "+questionDTO.getId());
+            }
+        });
+
+        return quizSubmitResponse;
+    }
+
+
+    @Override
+    @CacheEvict(value = "categories",allEntries = true)
+    public ResponseDTO<List<Quiz>> updateQuizzesStatus(UpdateEntitiesStatusDTO<Integer> updateEntitiesStatusDTO) {
+        List<Quiz> quizzes = quizRepository.findAllById(updateEntitiesStatusDTO.getIds());
+        EntitiesStatusUpdateAuditDTO<Quiz> entitiesStatusUpdateAuditDTO = new EntitiesStatusUpdateAuditDTO<>();
+        for(Quiz quiz : quizzes){
+            quiz.setIsActive(updateEntitiesStatusDTO.getIsActive());
         }
-        throw new IllegalArgumentException(("Quiz Not Found."));
+        List<Quiz> resultList = quizRepository.saveAll(quizzes);
+        entitiesStatusUpdateAuditDTO.setRemark(updateEntitiesStatusDTO.getRemark().trim());
+        List<Quiz> quizzesAudit = new ArrayList<>();
+        resultList.forEach(quiz->{
+            quizzesAudit.add(new Quiz(quiz.getId(), quiz.getName(), null, null, null, quiz.getDescription(), null, null, quiz.getIsActive()));
+        });
+        entitiesStatusUpdateAuditDTO.setDataList(quizzesAudit);
+        auditLogService.saveAuditLog(EOperation.UPDATE, entitiesStatusUpdateAuditDTO);
+        return new ResponseDTO<>(true, "Quizzes status updated successfully.", resultList);
     }
 
     @Override
@@ -158,21 +186,99 @@ public class QuizServiceImpl implements QuizService {
         if(quizOptional.isPresent()){
             Quiz quiz = quizOptional.get();
             QuizDTO quizDTO = new QuizDTO();
-            quizDTO.setActive(quiz.isActive());
+            quizDTO.setIsActive(quiz.getIsActive());
             quizDTO.setId(quiz.getId());
             quizDTO.setName(quiz.getName());
             quizDTO.setCategoryName(quiz.getCategory().getName());
             quizDTO.setCategoryId(quiz.getCategory().getId());
             quizDTO.setDescription(quiz.getDescription());
-            quizDTO.setQuestionDTOList(quiz.getQuestions().stream().map(question -> new QuestionDTO(question.getId(),question.getName(), quiz.getId(), question.getOption1(), question.getOption2(), question.getOption3(), question.getOption4(), question.getAnswer())).collect(Collectors.toList()));
+            quizDTO.setQuestionDTOList(quiz.getQuestions().stream().map(question -> new QuestionDTO(question.getId(),question.getName(), quiz.getId(), question.getOptionList().stream().map(option -> new OptionDTO(option.getId(), option.getName(), option.getIsCorrect())).collect(Collectors.toList()), question.getIsActive())).collect(Collectors.toList()));
 
             return quizDTO;
 
         }
-        throw new IllegalArgumentException("Quiz Not Found");
+        throw new IllegalArgumentException("Quiz Not Found.");
+    }
+
+    @Override
+    public QuizIdsWithQuizCountDTO getQuizIdsWithQuizCount(Integer categoryId, String searchInput) {
+        QuizIdsWithQuizCountProjection quizIdsWithQuizCountProjection = quizRepository.findQuizIdsWithQuizCount(searchInput, categoryId);
+        return new QuizIdsWithQuizCountDTO(quizIdsWithQuizCountProjection.getActiveIds() != null ? Arrays.stream(quizIdsWithQuizCountProjection.getActiveIds().split(",")).map(Integer::parseInt).collect(Collectors.toList()) : new ArrayList<>(), quizIdsWithQuizCountProjection.getInActiveIds() != null ? Arrays.stream(quizIdsWithQuizCountProjection.getInActiveIds().split(",")).map(Integer::parseInt).collect(Collectors.toList()) : new ArrayList<>());
+    }
+
+    @Override
+    public EntityUpdateTrailDTO<QuizDTO> getQuizUpdateTrailDTO(Integer entityId) {
+        List<AuditLogDTO<String>> auditLogDTOList = auditLogService.getAuditLogByEntity("Quiz", Long.valueOf(entityId));
+        EntityUpdateTrailDTO<QuizDTO> quizUpdateTrailDTO = new EntityUpdateTrailDTO<>();
+        List<AuditLogDTO<QuizDTO>> quizAuditLogList = new ArrayList<>();
+        auditLogDTOList.forEach(auditLogDTO->{
+            Quiz quiz = jsonConverter.convertToObject(auditLogDTO.getData(), new TypeReference<Quiz>() {
+            });
+            QuizDTO quizDTO = new QuizDTO(quiz.getId(), quiz.getName(), null, quiz.getCategory().getName(), null, quiz.getDescription(), null, quiz.getAttemptableCount(), quiz.getDuration(), quiz.getIsActive());
+            if(auditLogDTO.getActionType().equals(EOperation.CREATE)){
+                quizUpdateTrailDTO.setActualEntity(quizDTO);
+                quizUpdateTrailDTO.setCreatedBy(auditLogDTO.getUpdatedBy());
+                quizUpdateTrailDTO.setCreatedAt(auditLogDTO.getDate());
+            }else {
+                quizAuditLogList.add(new AuditLogDTO<>(auditLogDTO.getId(), null, quizDTO, auditLogDTO.getUpdatedBy(), auditLogDTO.getDate()));
+            }
+        });
+        quizUpdateTrailDTO.setAuditLogDTOList(quizAuditLogList);
+        return quizUpdateTrailDTO;
+    }
+
+    @Override
+    public List<EntitiesStatusUpdateTrailDTO<QuizDTO>> getQuizzesStatusUpdateTrailDTO() {
+        List<AuditLogDTO<String>> auditLogDTOList = auditLogService.getAuditLogByEntity("Quiz", 0L);
+        List<EntitiesStatusUpdateTrailDTO<QuizDTO>> entitiesStatusUpdateTrailDTOS = new ArrayList<>();
+        auditLogDTOList.forEach(auditLog->{
+            EntitiesStatusUpdateAuditDTO<Quiz> quizEntitiesStatusUpdateAuditDTO = jsonConverter.convertToObject(auditLog.getData(), new TypeReference<EntitiesStatusUpdateAuditDTO<Quiz>>() {
+            });
+            entitiesStatusUpdateTrailDTOS.add(
+                    new EntitiesStatusUpdateTrailDTO<>(
+                            auditLog.getUpdatedBy(),
+                            auditLog.getDate(),
+                            quizEntitiesStatusUpdateAuditDTO.getDataList().stream().map(quiz -> new QuizDTO(quiz.getId(), quiz.getName(), null, null, null, quiz.getDescription(), null, null, null, quiz.getIsActive())).collect(Collectors.toList()),
+                            quizEntitiesStatusUpdateAuditDTO.getRemark(),
+                            quizEntitiesStatusUpdateAuditDTO.getDataList().get(0).getIsActive()
+                    )
+            );
+        });
+        return entitiesStatusUpdateTrailDTOS;
+    }
+
+    @Override
+    public QuizInstructionDTO getQuizInstructions(Integer quizId) {
+        Quiz quiz = quizRepository.findById(quizId).orElseThrow(()-> new IllegalArgumentException("Quiz not found with quizId: "+quizId));
+        return new QuizInstructionDTO(quiz.getName(), quiz.getCategory().getName(), quiz.getDescription(), quiz.getDuration(), quiz.getAttemptableCount(), Arrays.asList(
+                String.format("You will get %s questions.", quiz.getAttemptableCount()),
+                "Each question carries 1 marks.",
+                "No negative marking.",
+                "Do not refresh or close the tab during the quiz.",
+                "The quiz will auto-submit when time runs out.",
+                "Ensure a stable internet connection."
+        ));
+    }
+
+    @Override
+    public ResponseDTO<QuizStartResponseDTO> startQuizService(Integer quizId) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        boolean isQuizInProgress = inMemoryQuizProgressStore.getQuizProgressForUser(username) != null;
+        if(isQuizInProgress){
+            return new ResponseDTO<>(false, "A Quiz is already in Progress. You can't start another before submitting it.", null);
+        }
+        Quiz quiz = quizRepository.findByIdAndIsActiveTrue(quizId).orElseThrow(()-> new IllegalArgumentException("Quiz not found with Quiz Id: "+quizId));
+        QuizProgressDTO quizProgressDTO = new QuizProgressDTO(quiz.getId(), quiz.getName(), quiz.getQuestions().stream().map(question -> new QuizProgressQuestionDTO(question.getId(), question.getName(), question.getOptionList().stream().map(option-> new OptionDTO(option.getId(), option.getName(), false)).collect(Collectors.toList()), false, false)).collect(Collectors.toList()));
+        quizProgressDTO.getQuizProgressQuestionDTOList().get(0).setIsVisited(true);
+        inMemoryQuizProgressStore.addUserWithQuizToMap(username, quizProgressDTO);
+        return new ResponseDTO<>(true, null, new QuizStartResponseDTO(inMemoryQuizProgressStore.getQuizProgressForUser(username).getId(), inMemoryQuizProgressStore.getQuizProgressForUser(username).getQuizProgressQuestionDTOList().get(0).getId()));
     }
 
     private boolean isPassed(Integer totalQuestions, Integer correctAnswers){
         return (correctAnswers / totalQuestions * 100 >= 33);
+    }
+
+    private boolean hasChanges(Quiz quiz, QuizDTO quizDTO){
+        return ! (quiz.getDescription().trim().equals(quizDTO.getDescription().trim()) && quiz.getAttemptableCount().equals(quizDTO.getAttemptableCount()) && quiz.getDuration().equals(quizDTO.getDuration()));
     }
 }

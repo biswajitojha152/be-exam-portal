@@ -1,12 +1,13 @@
 package com.examportal.services.impl;
 
 import com.examportal.dto.AuditLogDTO;
+import com.examportal.dto.EntitiesStatusUpdateAuditDTO;
 import com.examportal.helper.JsonConverter;
 import com.examportal.models.AuditLog;
 import com.examportal.models.EOperation;
 import com.examportal.repository.AuditLogRepository;
-import com.examportal.repository.UserRepository;
 import com.examportal.services.AuditLogService;
+import com.examportal.services.UserService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -24,6 +25,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -32,7 +34,7 @@ public class AuditLogServiceImpl implements AuditLogService {
     private AuditLogRepository auditLogRepository;
 
     @Autowired
-    private UserRepository userRepository;
+    private UserService userService;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -47,20 +49,17 @@ public class AuditLogServiceImpl implements AuditLogService {
     public void saveAuditLog(EOperation actionType, Object data) {
 
         try{
-            String entityName =  data instanceof List<?> ? ((List<?>) data).get(0).getClass().getSimpleName() : data.getClass().getSimpleName();
-
-            Long primaryKeyOfEntity = data instanceof List<?> ?  0 : getPrimaryKey(data);
-
+//            String entityName =  data instanceof List<?> ? ((List<?>) data).get(0).getClass().getSimpleName() : data.getClass().getSimpleName();
+            String entityName =  data instanceof EntitiesStatusUpdateAuditDTO<?> ? ((EntitiesStatusUpdateAuditDTO<?>) data).getDataList().get(0).getClass().getSimpleName() : data.getClass().getSimpleName();
+//            Long primaryKeyOfEntity = data instanceof List<?> ?  0 : getPrimaryKey(data);
+            Long primaryKeyOfEntity = data instanceof EntitiesStatusUpdateAuditDTO<?> ?  0 : getPrimaryKey(data);
             auditLogRepository.save(new AuditLog(
                             null,
                             entityName,
                             primaryKeyOfEntity,actionType,
                             objectMapper.writeValueAsString(data),
                             Timestamp.from(Instant.now()),
-                            userRepository.findByUsername(
-                                            SecurityContextHolder.getContext().getAuthentication().getName())
-                                    .orElseThrow(()-> new UsernameNotFoundException("Username not found."))
-                    )
+                        userService.getUserEntityByUsername(SecurityContextHolder.getContext().getAuthentication().getName()))
             );
         }catch (JsonProcessingException e){
             log.error(e.getMessage());

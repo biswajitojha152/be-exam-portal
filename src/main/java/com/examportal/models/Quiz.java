@@ -27,18 +27,26 @@ public class Quiz {
 
     private String description;
 
+    @Column(nullable = false, columnDefinition = "TINYINT UNSIGNED")
+    private Byte attemptableCount;
+
+    @Column(nullable = false, columnDefinition = "TINYINT UNSIGNED")
+    private Byte duration;
+
     private boolean isActive;
 
     public Quiz() {
     }
 
-    public Quiz(Integer id, String name, Category category, List<Question> questions, List<QuizTrail> quizTrails, String description,boolean isActive) {
+    public Quiz(Integer id, String name, Category category, List<Question> questions, List<QuizTrail> quizTrails, String description, Byte attemptableCount, Byte duration, boolean isActive) {
         this.id = id;
         this.name = name;
         this.category = category;
         this.questions = questions;
         this.quizTrails = quizTrails;
         this.description = description;
+        this.attemptableCount = attemptableCount;
+        this.duration = duration;
         this.isActive = isActive;
     }
 
@@ -90,11 +98,27 @@ public class Quiz {
         this.description = description;
     }
 
-    public boolean isActive() {
+    public Byte getAttemptableCount() {
+        return attemptableCount;
+    }
+
+    public void setAttemptableCount(Byte attemptableCount) {
+        this.attemptableCount = attemptableCount;
+    }
+
+    public Byte getDuration() {
+        return duration;
+    }
+
+    public void setDuration(Byte duration) {
+        this.duration = duration;
+    }
+
+    public boolean getIsActive() {
         return isActive;
     }
 
-    public void setActive(boolean active) {
-        isActive = active;
+    public void setIsActive(boolean isActive) {
+        this.isActive = isActive;
     }
 }

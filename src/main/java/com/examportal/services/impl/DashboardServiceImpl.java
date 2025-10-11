@@ -77,14 +77,14 @@ public class DashboardServiceImpl implements DashboardService {
             int totalElements= quizTrails.size();
             paginatedResponse.setData(quizTrails.stream().map(quizTrail -> new QuizTrailDTO(
                     quizTrail.getId(),
-                    new QuizDTO(quizTrail.getQuiz().getId(), quizTrail.getQuiz().getName(), quizTrail.getQuiz().getCategory().getId(), quizTrail.getQuiz().getCategory().getName(), null, null, null,quizTrail.getQuiz().isActive()),
+                    new QuizDTO(quizTrail.getQuiz().getId(), quizTrail.getQuiz().getName(), quizTrail.getQuiz().getCategory().getId(), quizTrail.getQuiz().getCategory().getName(), null, null, null, null, null,quizTrail.getQuiz().getIsActive()),
                     quizTrail.getUser().getUsername(),
                     quizTrail.getTotalQuestions(),
                     quizTrail.getCorrectAnswer(),
                     quizTrail.getAttemptedAt(),
                     quizTrail.getStatus().getRoleValue()
             )).collect(Collectors.toList()));
-            paginatedResponse.setLastPage(true);
+            paginatedResponse.setIsLastPage(true);
             paginatedResponse.setPageNumber(0);
             paginatedResponse.setPageSize(totalElements);
             paginatedResponse.setTotalElements(totalElements);
@@ -94,14 +94,14 @@ public class DashboardServiceImpl implements DashboardService {
             Page<QuizTrail> page = quizTrailRepository.findAll(quizTrailSpecification, pageable);
             paginatedResponse.setData(page.getContent().stream().map(quizTrail -> new QuizTrailDTO(
                     quizTrail.getId(),
-                    new QuizDTO(quizTrail.getQuiz().getId(), quizTrail.getQuiz().getName(), quizTrail.getQuiz().getCategory().getId(), quizTrail.getQuiz().getCategory().getName(), null, null, null, quizTrail.getQuiz().isActive()),
+                    new QuizDTO(quizTrail.getQuiz().getId(), quizTrail.getQuiz().getName(), quizTrail.getQuiz().getCategory().getId(), quizTrail.getQuiz().getCategory().getName(), null, null, null, null, null, quizTrail.getQuiz().getIsActive()),
                     quizTrail.getUser().getUsername(),
                     quizTrail.getTotalQuestions(),
                     quizTrail.getCorrectAnswer(),
                     quizTrail.getAttemptedAt(),
                     quizTrail.getStatus().getRoleValue()
             )).collect(Collectors.toList()));
-            paginatedResponse.setLastPage(page.isLast());
+            paginatedResponse.setIsLastPage(page.isLast());
             paginatedResponse.setPageNumber(page.getNumber());
             paginatedResponse.setPageSize(page.getSize());
             paginatedResponse.setTotalElements(page.getTotalElements());

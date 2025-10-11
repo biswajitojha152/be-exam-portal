@@ -1,5 +1,6 @@
 package com.examportal.services.impl;
 
+import com.examportal.dto.UserDTO;
 import com.examportal.helper.EmailTemplateBuilder;
 import com.examportal.helper.PasswordGenerator;
 import com.examportal.models.EmailDetails;
@@ -15,16 +16,19 @@ import com.examportal.security.jwt.JwtUtils;
 import com.examportal.security.services.UserDetailsImpl;
 import com.examportal.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -109,8 +113,10 @@ public class UserServiceImpl implements UserService {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String jwt = jwtUtils.generateJwtToken(authentication);
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-
-
+        String role = userDetails.getAuthorities().stream()
+                .findFirst()
+                .map(GrantedAuthority::getAuthority).orElseThrow(()-> new IllegalArgumentException("Expected first item."))
+                .replace("ROLE_", "");
 
         return ResponseEntity.ok(
             new JwtResponse(
@@ -118,11 +124,35 @@ public class UserServiceImpl implements UserService {
                     userDetails.getLastName(),
                     jwt,
                     userDetails.getUsername(),
-                    userDetails.getAuthorities().stream()
-                            .map(GrantedAuthority::getAuthority)
-                            .toList().get(0),
+                    role,
                     userDetails.getProfilePicture()
             )
         );
+    }
+
+    @Override
+    public List<UserDTO> getAllUserService() {
+        String loggedInUserUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        List<User> userList = userRepository.findAll();
+        List<UserDTO> userDTOList = new ArrayList<>();
+        userList.forEach(user -> {
+            boolean isLoggedInUser = user.getUsername().equals(loggedInUserUsername);
+                UserDTO userDTO = new UserDTO(isLoggedInUser ? user.getId() : null, user.getUsername(), isLoggedInUser ? user.getFirstName() : null, isLoggedInUser ? user.getLastName() : null, isLoggedInUser ? user.getEmail() : null, isLoggedInUser ? user.getProfilePicture() : null, user.getRole().getName().name(), user.isActive());
+                if(isLoggedInUser){
+                    userDTOList.add(0, userDTO);
+                }else {
+                    userDTOList.add(userDTO);
+                }
+
+        });
+        return userDTOList;
+    }
+
+    @Override
+    @Cacheable(value = "user", key = "#username")
+    public User getUserEntityByUsername(String username){
+        return userRepository.findByUsername(
+                        username)
+                .orElseThrow(()-> new UsernameNotFoundException("Username not found."));
     }
 }

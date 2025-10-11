@@ -62,11 +62,11 @@ public class PaginatedResponse<T> {
         this.totalPages = totalPages;
     }
 
-    public boolean isLastPage() {
+    public boolean getIsLastPage() {
         return isLastPage;
     }
 
-    public void setLastPage(boolean lastPage) {
-        isLastPage = lastPage;
+    public void setIsLastPage(boolean isLastPage) {
+        this.isLastPage = isLastPage;
     }
 }

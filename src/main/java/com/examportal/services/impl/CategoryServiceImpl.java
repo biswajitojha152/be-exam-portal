@@ -1,16 +1,24 @@
 package com.examportal.services.impl;
 
 import com.examportal.dto.*;
+import com.examportal.dto.projection.CategoryProjection;
 import com.examportal.helper.JsonConverter;
+import com.examportal.helper.SecurityContextHelper;
 import com.examportal.models.Category;
 import com.examportal.models.EOperation;
+import com.examportal.models.ERole;
 import com.examportal.repository.CategoryRepository;
 import com.examportal.repository.QuizRepository;
 import com.examportal.services.AuditLogService;
 import com.examportal.services.CategoryService;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -31,26 +39,41 @@ public class CategoryServiceImpl implements CategoryService {
     @Autowired
     private JsonConverter jsonConverter;
 
+    @Autowired
+    private SecurityContextHelper securityContextHelper;
+
     @Override
+    @Cacheable(value = "categories", key = "'getAllCategories'+'_'+@securityContextHelper.getCurrentUserRole()")
     public ResponseDTO<List<CategoryDTO>> getAllCategories() {
+        List<CategoryDTO> categoryDTOList = new ArrayList<>();
+        boolean isAdmin = SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream().anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_"+ ERole.ADMIN.name()));
 
-        List<Object[]> results = categoryRepository.findCategoriesWithQuizCounts();
+        if(isAdmin){
+            List<CategoryProjection> results = categoryRepository.findCategoriesWithQuizCounts();
+            results.forEach(result->{
+                Integer id = result.getId();
+                String name = result.getName();
+                String description = result.getDescription();
+                boolean isActive = result.getIsActive();
+                Long totalQuizCount = result.getTotalQuizCount();
+                Long activeQuizCount = result.getActiveQuizCount();
+                Long inActiveQuizCount = result.getInActiveQuizCount();
+                QuizCountDTO quizCountDTO = new QuizCountDTO(totalQuizCount, activeQuizCount, inActiveQuizCount);
 
+                categoryDTOList.add(new CategoryDTO(id, name, description, isActive, quizCountDTO));
+            });
+        }else {
+            List<Category> categoryList = categoryRepository.findAllByIsActiveTrue();
+            categoryList.forEach(category -> {
+                categoryDTOList.add(new CategoryDTO(category.getId(), category.getName(), null,false, null));
+            });
+        }
 
-        return new ResponseDTO<>(true, null, results.stream().map(result->{
-            Integer id = (Integer) result[0];
-            String name = (String) result[1];
-            String description = (String) result[2];
-            boolean isActive = (boolean) result[3];
-            Long totalQuizCount = (Long) result[4];
-            Long activeQuizCount = (Long) result[5];
-            Long inActiveQuizCount = (Long) result[6];
-            CategoryQuizCountDTO categoryQuizCountDTO = new CategoryQuizCountDTO(totalQuizCount, activeQuizCount, inActiveQuizCount);
-            return new CategoryDTO(id, name, description, isActive, categoryQuizCountDTO);
-        }).collect(Collectors.toList()));
+        return new ResponseDTO<>(true, null, categoryDTOList);
     }
 
     @Override
+    @CacheEvict(value = "categories", allEntries = true)
     public ResponseDTO<Category> saveCategory(CategoryDTO category) {
         if(categoryRepository.existsByName(category.getName())){
             return new ResponseDTO<>(false, "Category name already exists.", null);
@@ -68,6 +91,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @CacheEvict(value = "categories", allEntries = true)
     public ResponseDTO<Category> updateCategory(CategoryDTO categoryDTO) {
         Category category = categoryRepository.findById(categoryDTO.getId()).orElseThrow(()-> new IllegalArgumentException("Category id does not exists."));
         if(hasChanges(category, categoryDTO)){
@@ -85,17 +109,21 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public ResponseDTO<List<Category>> updateCategoriesStatus(UpdateCategoriesStatusDTO updateCategoriesStatusDTO) {
-        List<Category> categories = categoryRepository.findAllById(updateCategoriesStatusDTO.getIds());
-        List<Category> categoriesAudit = new ArrayList<>();
+    @CacheEvict(value = "categories", allEntries = true)
+    public ResponseDTO<List<Category>> updateCategoriesStatus(UpdateEntitiesStatusDTO<Integer> updateEntitiesStatusDTO) {
+        List<Category> categories = categoryRepository.findAllById(updateEntitiesStatusDTO.getIds());
+        EntitiesStatusUpdateAuditDTO<Category> entitiesStatusUpdateAuditDTO = new EntitiesStatusUpdateAuditDTO<>();
         for(Category category : categories){
-            category.setIsActive(updateCategoriesStatusDTO.getIsActive());
+            category.setIsActive(updateEntitiesStatusDTO.getIsActive());
         }
         List<Category> resultList = categoryRepository.saveAll(categories);
+        entitiesStatusUpdateAuditDTO.setRemark(updateEntitiesStatusDTO.getRemark());
+        List<Category> categoriesAudit = new ArrayList<>();
         resultList.forEach(category -> {
             categoriesAudit.add(new Category(category.getId(), category.getName(), category.getDescription(), null, category.getIsActive()));
         });
-        auditLogService.saveAuditLog(EOperation.UPDATE , categoriesAudit);
+        entitiesStatusUpdateAuditDTO.setDataList(categoriesAudit);
+        auditLogService.saveAuditLog(EOperation.UPDATE , entitiesStatusUpdateAuditDTO);
         return new ResponseDTO<>(true, "Categories status updated successfully.", resultList);
     }
 
@@ -106,7 +134,8 @@ public class CategoryServiceImpl implements CategoryService {
         EntityUpdateTrailDTO<CategoryDTO> categoryUpdateTrailDTO =  new EntityUpdateTrailDTO<>();
         List<AuditLogDTO<CategoryDTO>> categoryAuditLogList = new ArrayList<>();
         auditLogDTOList.forEach(auditLogDTO ->{
-            Category category = jsonConverter.convertToObject(auditLogDTO.getData(), Category.class);
+            Category category = jsonConverter.convertToObject(auditLogDTO.getData(), new TypeReference<Category>() {
+            });
             CategoryDTO categoryDTO = new CategoryDTO(category.getId(), category.getName(), category.getDescription(), category.getIsActive(), null);
             if(auditLogDTO.getActionType().equals(EOperation.CREATE)){
                 categoryUpdateTrailDTO.setActualEntity(
@@ -127,14 +156,18 @@ public class CategoryServiceImpl implements CategoryService {
     public List<EntitiesStatusUpdateTrailDTO<CategoryDTO>> getCategoriesStatusUpdateTrailDTO() {
         List<AuditLogDTO<String>> auditLogDTOList = auditLogService.getAuditLogByEntity("Category", 0L);
         List<EntitiesStatusUpdateTrailDTO<CategoryDTO>> entitiesStatusUpdateTrailDTOS = new ArrayList<>();
+
         auditLogDTOList.forEach(auditLog->{
-            List<Category> categoryList = jsonConverter.convertToListOfObject(auditLog.getData(), Category.class);
+            EntitiesStatusUpdateAuditDTO<Category> categoryEntitiesStatusUpdateAuditDTO = jsonConverter.convertToObject(auditLog.getData(), new TypeReference<EntitiesStatusUpdateAuditDTO<Category>>() {
+            });
+
             entitiesStatusUpdateTrailDTOS.add(
                     new EntitiesStatusUpdateTrailDTO<>(
                             auditLog.getUpdatedBy(),
                             auditLog.getDate(),
-                            categoryList.stream().map(category -> new CategoryDTO(category.getId(), category.getName(), null, category.getIsActive(), null)).collect(Collectors.toList()),
-                            categoryList.get(0).getIsActive()
+                            categoryEntitiesStatusUpdateAuditDTO.getDataList().stream().map(category -> new CategoryDTO(category.getId(), category.getName(), null, category.getIsActive(), null)).collect(Collectors.toList()),
+                            categoryEntitiesStatusUpdateAuditDTO.getRemark(),
+                            categoryEntitiesStatusUpdateAuditDTO.getDataList().get(0).getIsActive()
                     )
             );
         });

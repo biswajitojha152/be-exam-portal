@@ -1,14 +1,16 @@
 package com.examportal.dto;
 
-public class CategoryQuizCountDTO {
+import java.io.Serializable;
+
+public class QuizCountDTO implements Serializable {
     private Long totalQuizCount;
     private Long activeQuizCount;
     private Long inActiveQuizCount;
 
-    public CategoryQuizCountDTO() {
+    public QuizCountDTO() {
     }
 
-    public CategoryQuizCountDTO(Long totalQuizCount, Long activeQuizCount, Long inActiveQuizCount) {
+    public QuizCountDTO(Long totalQuizCount, Long activeQuizCount, Long inActiveQuizCount) {
         this.totalQuizCount = totalQuizCount;
         this.activeQuizCount = activeQuizCount;
         this.inActiveQuizCount = inActiveQuizCount;

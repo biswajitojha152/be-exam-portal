@@ -12,7 +12,7 @@ public interface CategoryService {
 
     ResponseDTO<Category> updateCategory(CategoryDTO categoryDTO);
 
-    ResponseDTO<List<Category>> updateCategoriesStatus(UpdateCategoriesStatusDTO updateCategoriesStatusDTO);
+    ResponseDTO<List<Category>> updateCategoriesStatus(UpdateEntitiesStatusDTO<Integer> updateEntitiesStatusDTO);
 
     EntityUpdateTrailDTO<CategoryDTO> getCategoryUpdateTrailDTO(Integer entityId);
 

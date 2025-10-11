@@ -49,8 +49,6 @@ public class AuthController {
         signUpRequest.setPhone(phone);
         signUpRequest.setRole(ERole.valueOf(role));
 
-
-
         if(file != null){
             if(!FileValidator.isImageType(Objects.requireNonNull(file.getContentType()))){
                 throw  new RuntimeException("File is not image type.");

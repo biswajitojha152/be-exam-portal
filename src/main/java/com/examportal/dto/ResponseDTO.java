@@ -1,6 +1,8 @@
 package com.examportal.dto;
 
-public class ResponseDTO<T> {
+import java.io.Serializable;
+
+public class ResponseDTO<T> implements Serializable {
     private boolean isSuccess;
     private String message;
     private T data;

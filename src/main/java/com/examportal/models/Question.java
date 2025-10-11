@@ -10,27 +10,27 @@ public class Question {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
+
     private String name;
-    private String option1;
-    private String option2;
-    private String option3;
-    private String option4;
-    private String answer;
+
+    @OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @JoinColumn
+    private List<Option> optionList;
+
     @ManyToOne
     private Quiz quiz;
+
+    private boolean isActive;
 
     public Question() {
     }
 
-    public Question(Integer id, String name, String option1, String option2, String option3, String option4, String answer, Quiz quiz) {
+    public Question(Integer id, String name, List<Option> optionList, Quiz quiz, boolean isActive) {
         this.id = id;
         this.name = name;
-        this.option1 = option1;
-        this.option2 = option2;
-        this.option3 = option3;
-        this.option4 = option4;
-        this.answer = answer;
+        this.optionList = optionList;
         this.quiz = quiz;
+        this.isActive = isActive;
     }
 
     public Integer getId() {
@@ -49,44 +49,12 @@ public class Question {
         this.name = name;
     }
 
-    public String getOption1() {
-        return option1;
+    public List<Option> getOptionList() {
+        return optionList;
     }
 
-    public void setOption1(String option1) {
-        this.option1 = option1;
-    }
-
-    public String getOption2() {
-        return option2;
-    }
-
-    public void setOption2(String option2) {
-        this.option2 = option2;
-    }
-
-    public String getOption3() {
-        return option3;
-    }
-
-    public void setOption3(String option3) {
-        this.option3 = option3;
-    }
-
-    public String getOption4() {
-        return option4;
-    }
-
-    public void setOption4(String option4) {
-        this.option4 = option4;
-    }
-
-    public String getAnswer() {
-        return answer;
-    }
-
-    public void setAnswer(String answer) {
-        this.answer = answer;
+    public void setOptionList(List<Option> optionList) {
+        this.optionList = optionList;
     }
 
     public Quiz getQuiz() {
@@ -95,5 +63,13 @@ public class Question {
 
     public void setQuiz(Quiz quiz) {
         this.quiz = quiz;
+    }
+
+    public boolean getIsActive() {
+        return isActive;
+    }
+
+    public void setIsActive(boolean isActive) {
+        this.isActive = isActive;
     }
 }
