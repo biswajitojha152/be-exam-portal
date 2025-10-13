@@ -1,5 +1,6 @@
 package com.examportal.dto;
 
+import java.time.Instant;
 import java.util.Date;
 
 public class QuizTrailDTO {
@@ -13,14 +14,14 @@ public class QuizTrailDTO {
 
     private Integer correctAnswer;
 
-    private Date attemptedAt;
+    private Instant attemptedAt;
 
     private String status;
 
     public QuizTrailDTO() {
     }
 
-    public QuizTrailDTO(Integer id, QuizDTO quizDTO, String username, Integer totalQuestions, Integer correctAnswer, Date attemptedAt, String status) {
+    public QuizTrailDTO(Integer id, QuizDTO quizDTO, String username, Integer totalQuestions, Integer correctAnswer, Instant attemptedAt, String status) {
         this.id = id;
         this.quizDTO = quizDTO;
         this.username = username;
@@ -70,11 +71,11 @@ public class QuizTrailDTO {
         this.correctAnswer = correctAnswer;
     }
 
-    public Date getAttemptedAt() {
+    public Instant getAttemptedAt() {
         return attemptedAt;
     }
 
-    public void setAttemptedAt(Date attemptedAt) {
+    public void setAttemptedAt(Instant attemptedAt) {
         this.attemptedAt = attemptedAt;
     }
 

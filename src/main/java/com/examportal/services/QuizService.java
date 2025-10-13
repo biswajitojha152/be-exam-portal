@@ -12,7 +12,7 @@ public interface QuizService {
 
     ResponseDTO<Quiz> updateQuiz(QuizDTO quizDTO);
 
-    QuizSubmitResponse submitQuiz(QuizDTO quizDTO);
+    QuizSubmitResponse submitQuiz();
 
     ResponseDTO<List<Quiz>> updateQuizzesStatus(UpdateEntitiesStatusDTO<Integer> updateEntitiesStatusDTO);
 

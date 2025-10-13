@@ -3,6 +3,7 @@ package com.examportal.session;
 import com.examportal.dto.QuizProgressDTO;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -16,7 +17,11 @@ public class InMemoryQuizProgressStore {
     }
 
     public QuizProgressDTO getQuizProgressForUser(String username){
-        return  quizProgressDTOMap.get(username);
+        QuizProgressDTO quizProgressDTO =quizProgressDTOMap.get(username);
+        if(quizProgressDTO != null){
+            quizProgressDTO.setLastFetchedTime(Instant.now());
+        }
+        return quizProgressDTO;
     }
 
     public void handleQuestionChange(String username, Integer questionId, Long optionId){

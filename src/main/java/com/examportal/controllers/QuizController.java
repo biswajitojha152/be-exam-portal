@@ -57,8 +57,8 @@ public class QuizController {
     }
 
     @PostMapping("/submitQuiz")
-    public ResponseEntity<?> submitQuiz(@RequestBody QuizDTO quizDTO){
-        return ResponseEntity.ok(quizService.submitQuiz(quizDTO));
+    public ResponseEntity<?> submitQuiz(){
+        return ResponseEntity.ok(quizService.submitQuiz());
     }
 
     @GetMapping("/getQuizIdsWithQuizCount")

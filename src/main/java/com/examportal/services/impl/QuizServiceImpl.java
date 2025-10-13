@@ -16,7 +16,6 @@ import com.examportal.session.InMemoryQuizProgressStore;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -25,7 +24,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 @Service
@@ -131,33 +132,42 @@ public class QuizServiceImpl implements QuizService {
     }
 
     @Override
-    public QuizSubmitResponse submitQuiz(QuizDTO quizDTO) {
-        Quiz quiz = quizRepository.findById(quizDTO.getId()).orElseThrow(()-> new IllegalArgumentException("Quiz not exits with id: "+quizDTO.getId()));
-//        if(quizDTO.getQuestionDTOList().size() != quiz.getAttemptableCount()){
-//            throw new IllegalArgumentException("Question DTO size is not same as attempt count.");
-//        }
-        List<Question> questionList = quiz.getQuestions();
-        QuizSubmitResponse quizSubmitResponse = new QuizSubmitResponse();
-    quizSubmitResponse.setTotalMark(10); // convert to integer or vice versa still pending
-        Map<Integer, Question> questionMap = new HashMap<>();
-        questionList.forEach(question -> {
-            questionMap.put(question.getId(), question);
-        });
+    public QuizSubmitResponse submitQuiz() {
+        QuizProgressDTO quizProgressDTO = inMemoryQuizProgressStore.getQuizProgressForUser(SecurityContextHolder.getContext().getAuthentication().getName());
+        if(quizProgressDTO != null){
+            Quiz quiz = quizRepository.findById(quizProgressDTO.getId()).orElseThrow(()-> new IllegalArgumentException("Quiz not exits with id: "+quizProgressDTO.getId()));
 
-        quizDTO.getQuestionDTOList().forEach(questionDTO -> {
-            Optional<Question> questionOptional = Optional.ofNullable(questionMap.get(questionDTO.getId()));
-            if(questionOptional.isPresent()){
-                Option correctOption = questionOptional.get().getOptionList().stream().filter(Option::getIsCorrect).findFirst().orElseThrow(()-> new RuntimeException("No Correct Answer Found."));
-                Optional<OptionDTO> selectedOption = questionDTO.getOptionDTOList().stream().filter(OptionDTO::getIsCorrect).findFirst();
-                if(selectedOption.isPresent() && Objects.equals(selectedOption.get().getId(), correctOption.getId())){
-                    quizSubmitResponse.setSecuredMark(quizSubmitResponse.getSecuredMark() != null ? quizSubmitResponse.getSecuredMark()+1 : 1);
+            List<Question> questionList = quiz.getQuestions();
+            QuizSubmitResponse quizSubmitResponse = new QuizSubmitResponse();
+            quizSubmitResponse.setSecuredMark(0);
+            quizSubmitResponse.setTotalMark(quiz.getAttemptableCount().intValue());
+            Map<Integer, Question> questionMap = new HashMap<>();
+            questionList.forEach(question -> {
+                questionMap.put(question.getId(), question);
+            });
+            AtomicReference<Integer> attemptedQuestions = new AtomicReference<>(0);
+            quizProgressDTO.getQuizProgressQuestionDTOList().forEach(questionDTO -> {
+                Optional<Question> questionOptional = Optional.ofNullable(questionMap.get(questionDTO.getId()));
+                if(questionOptional.isPresent()){
+                    Option correctOption = questionOptional.get().getOptionList().stream().filter(Option::getIsCorrect).findFirst().orElseThrow(()-> new RuntimeException("No Correct Answer Found."));
+                    Optional<OptionDTO> selectedOption = questionDTO.getOptionDTOList().stream().filter(OptionDTO::getIsCorrect).findFirst();
+                    if(selectedOption.isPresent()){
+                        attemptedQuestions.getAndSet(attemptedQuestions.get() + 1);
+                    }
+                    if(selectedOption.isPresent() && Objects.equals(selectedOption.get().getId(), correctOption.getId())){
+                        quizSubmitResponse.setSecuredMark(quizSubmitResponse.getSecuredMark()+1);
+                    }
+                }else {
+                    throw new IllegalArgumentException("Question does not exits with id: "+questionDTO.getId());
                 }
-            }else {
-                throw new IllegalArgumentException("Question does not exits with id: "+questionDTO.getId());
-            }
-        });
+            });
 
-        return quizSubmitResponse;
+            QuizTrail quizTrail = new QuizTrail(null, quiz, userRepository.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName()).orElseThrow(()-> new IllegalArgumentException("No user found with this username.")), quizSubmitResponse.getTotalMark(), attemptedQuestions.get(), quizSubmitResponse.getSecuredMark(), Instant.now(), isPassed(quizSubmitResponse.getTotalMark(), quizSubmitResponse.getSecuredMark()) ? EStatus.PASSED : EStatus.FAILED);
+            quizTrailRepository.save(quizTrail);
+
+            return quizSubmitResponse;
+        }
+        throw new IllegalArgumentException("No Quiz In Progress Found.");
     }
 
 
@@ -268,8 +278,8 @@ public class QuizServiceImpl implements QuizService {
             return new ResponseDTO<>(false, "A Quiz is already in Progress. You can't start another before submitting it.", null);
         }
         Quiz quiz = quizRepository.findByIdAndIsActiveTrue(quizId).orElseThrow(()-> new IllegalArgumentException("Quiz not found with Quiz Id: "+quizId));
-        QuizProgressDTO quizProgressDTO = new QuizProgressDTO(quiz.getId(), quiz.getName(), quiz.getQuestions().stream().map(question -> new QuizProgressQuestionDTO(question.getId(), question.getName(), question.getOptionList().stream().map(option-> new OptionDTO(option.getId(), option.getName(), false)).collect(Collectors.toList()), false, false)).collect(Collectors.toList()));
-        quizProgressDTO.getQuizProgressQuestionDTOList().get(0).setIsVisited(true);
+        QuizProgressDTO quizProgressDTO = new QuizProgressDTO(quiz.getId(), quiz.getName(), Instant.now(), Instant.now(), (long) (quiz.getDuration()*60),quiz.getQuestions().stream().map(question -> new QuizProgressQuestionDTO(question.getId(), question.getName(), question.getOptionList().stream().map(option-> new OptionDTO(option.getId(), option.getName(), false)).collect(Collectors.toList()), false, false)).collect(Collectors.toList()));
+//        quizProgressDTO.getQuizProgressQuestionDTOList().get(0).setIsVisited(true);
         inMemoryQuizProgressStore.addUserWithQuizToMap(username, quizProgressDTO);
         return new ResponseDTO<>(true, null, new QuizStartResponseDTO(inMemoryQuizProgressStore.getQuizProgressForUser(username).getId(), inMemoryQuizProgressStore.getQuizProgressForUser(username).getQuizProgressQuestionDTOList().get(0).getId()));
     }
