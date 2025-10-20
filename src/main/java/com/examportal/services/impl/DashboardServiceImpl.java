@@ -80,8 +80,10 @@ public class DashboardServiceImpl implements DashboardService {
                     new QuizDTO(quizTrail.getQuiz().getId(), quizTrail.getQuiz().getName(), quizTrail.getQuiz().getCategory().getId(), quizTrail.getQuiz().getCategory().getName(), null, null, null, null, null,quizTrail.getQuiz().getIsActive()),
                     quizTrail.getUser().getUsername(),
                     quizTrail.getTotalQuestions(),
+                    quizTrail.getAttemptedQuestions(),
                     quizTrail.getCorrectAnswer(),
                     quizTrail.getAttemptedAt(),
+                    quizTrail.getTimeTaken(),
                     quizTrail.getStatus().getRoleValue()
             )).collect(Collectors.toList()));
             paginatedResponse.setIsLastPage(true);
@@ -97,8 +99,10 @@ public class DashboardServiceImpl implements DashboardService {
                     new QuizDTO(quizTrail.getQuiz().getId(), quizTrail.getQuiz().getName(), quizTrail.getQuiz().getCategory().getId(), quizTrail.getQuiz().getCategory().getName(), null, null, null, null, null, quizTrail.getQuiz().getIsActive()),
                     quizTrail.getUser().getUsername(),
                     quizTrail.getTotalQuestions(),
+                    quizTrail.getAttemptedQuestions(),
                     quizTrail.getCorrectAnswer(),
                     quizTrail.getAttemptedAt(),
+                    quizTrail.getTimeTaken(),
                     quizTrail.getStatus().getRoleValue()
             )).collect(Collectors.toList()));
             paginatedResponse.setIsLastPage(page.isLast());

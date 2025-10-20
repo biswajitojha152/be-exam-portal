@@ -16,6 +16,10 @@ public class InMemoryQuizProgressStore {
         quizProgressDTOMap.put(username, quizProgressDTO);
     }
 
+    public void removeQuizForUser(String username) {
+        quizProgressDTOMap.remove(username);
+    }
+
     public QuizProgressDTO getQuizProgressForUser(String username){
         QuizProgressDTO quizProgressDTO =quizProgressDTOMap.get(username);
         if(quizProgressDTO != null){

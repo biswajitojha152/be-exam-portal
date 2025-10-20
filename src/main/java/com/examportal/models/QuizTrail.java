@@ -3,7 +3,6 @@ package com.examportal.models;
 import jakarta.persistence.*;
 
 import java.time.Instant;
-import java.util.Date;
 
 @Entity
 public class QuizTrail {
@@ -26,13 +25,15 @@ public class QuizTrail {
     @Temporal(TemporalType.TIMESTAMP)
     private Instant attemptedAt;
 
+    private Short timeTaken;
+
     @Enumerated(EnumType.STRING)
     private EStatus status;
 
     public QuizTrail() {
     }
 
-    public QuizTrail(Integer id, Quiz quiz, User user, Integer totalQuestions, Integer attemptedQuestions, Integer correctAnswer, Instant attemptedAt, EStatus status) {
+    public QuizTrail(Integer id, Quiz quiz, User user, Integer totalQuestions, Integer attemptedQuestions, Integer correctAnswer, Instant attemptedAt, Short timeTaken , EStatus status) {
         this.id = id;
         this.quiz = quiz;
         this.user = user;
@@ -40,6 +41,7 @@ public class QuizTrail {
         this.attemptedQuestions = attemptedQuestions;
         this.correctAnswer = correctAnswer;
         this.attemptedAt = attemptedAt;
+        this.timeTaken = timeTaken;
         this.status = status;
     }
 
@@ -97,6 +99,14 @@ public class QuizTrail {
 
     public void setAttemptedAt(Instant attemptedAt) {
         this.attemptedAt = attemptedAt;
+    }
+
+    public Short getTimeTaken() {
+        return timeTaken;
+    }
+
+    public void setTimeTaken(Short timeTaken) {
+        this.timeTaken = timeTaken;
     }
 
     public EStatus getStatus() {
