@@ -281,8 +281,10 @@ public class QuizServiceImpl implements QuizService {
             return new ResponseDTO<>(false, "A Quiz is already in Progress. You can't start another before submitting it.", null);
         }
         Quiz quiz = quizRepository.findByIdAndIsActiveTrue(quizId).orElseThrow(()-> new IllegalArgumentException("Quiz not found with Quiz Id: "+quizId));
-        QuizProgressDTO quizProgressDTO = new QuizProgressDTO(quiz.getId(), quiz.getName(), Instant.now(), Instant.now(), (long) (quiz.getDuration()*60),quiz.getQuestions().stream().map(question -> new QuizProgressQuestionDTO(question.getId(), question.getName(), question.getOptionList().stream().map(option-> new OptionDTO(option.getId(), option.getName(), false)).collect(Collectors.toList()), false, false)).collect(Collectors.toList()));
-//        quizProgressDTO.getQuizProgressQuestionDTOList().get(0).setIsVisited(true);
+        QuizProgressDTO quizProgressDTO = new QuizProgressDTO(quiz.getId(), quiz.getName(), Instant.now(), Instant.now(), (long) (quiz.getDuration()*60),quiz.getQuestions().stream().filter(Question::getIsActive).map(question -> new QuizProgressQuestionDTO(question.getId(), question.getName(), question.getOptionList().stream().map(option-> new OptionDTO(option.getId(), option.getName(), false)).collect(Collectors.toList()), false, false)).collect(Collectors.toList()));
+        if(quizProgressDTO.getQuizProgressQuestionDTOList().isEmpty()){
+            return new ResponseDTO<>(false, "No Active Questions Found.", null);
+        }
         inMemoryQuizProgressStore.addUserWithQuizToMap(username, quizProgressDTO);
         return new ResponseDTO<>(true, null, new QuizStartResponseDTO(inMemoryQuizProgressStore.getQuizProgressForUser(username).getId(), inMemoryQuizProgressStore.getQuizProgressForUser(username).getQuizProgressQuestionDTOList().get(0).getId()));
     }
