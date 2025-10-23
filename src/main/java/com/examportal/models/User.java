@@ -35,6 +35,8 @@ public class User implements Serializable {
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     private Role role;
 
+    private boolean isDarkTheme;
+
     @Column(nullable = false)
     private boolean isActive;
 
@@ -55,6 +57,7 @@ public class User implements Serializable {
             String email,
             String phone,
             String profilePicture,
+            boolean isDarkTheme,
             boolean isActive,
             Role role
     ) {
@@ -65,6 +68,7 @@ public class User implements Serializable {
         this.email = email;
         this.phone = phone;
         this.profilePicture = profilePicture;
+        this.isDarkTheme = isDarkTheme;
         this.isActive = isActive;
         this.role = role;
     }
@@ -139,6 +143,14 @@ public class User implements Serializable {
 
     public void setRole(Role role) {
         this.role = role;
+    }
+
+    public boolean getIsDarkTheme() {
+        return isDarkTheme;
+    }
+
+    public void setIsDarkTheme(boolean isDarkTheme) {
+        this.isDarkTheme = isDarkTheme;
     }
 
     public boolean isActive() {

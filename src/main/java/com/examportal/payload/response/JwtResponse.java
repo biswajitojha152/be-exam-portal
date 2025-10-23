@@ -8,17 +8,19 @@ public class JwtResponse {
     private String username;
     private String role;
     private String profileUrl;
+    private boolean isDarkTheme;
 
     public JwtResponse() {
     }
 
-    public JwtResponse(String firstName, String lastName, String token, String username, String role, String profileUrl) {
+    public JwtResponse(String firstName, String lastName, String token, String username, String role, String profileUrl, boolean isDarkTheme) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.token = token;
         this.username = username;
         this.role = role;
         this.profileUrl= profileUrl;
+        this.isDarkTheme=isDarkTheme;
     }
 
     public String getFirstName() {
@@ -75,5 +77,13 @@ public class JwtResponse {
 
     public void setProfileUrl(String profileUrl) {
         this.profileUrl = profileUrl;
+    }
+
+    public boolean getIsDarkTheme() {
+        return isDarkTheme;
+    }
+
+    public void setIsDarkTheme(boolean isDarkTheme) {
+        this.isDarkTheme = isDarkTheme;
     }
 }

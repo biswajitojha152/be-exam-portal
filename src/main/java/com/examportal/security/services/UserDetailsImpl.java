@@ -17,8 +17,9 @@ public class UserDetailsImpl implements UserDetails {
     private final Collection<? extends  GrantedAuthority> authorities;
     private final boolean isActive;
     private final String profilePicture;
+    private final boolean isDarkTheme;
 
-    public UserDetailsImpl(String firstName, String lastName, String username, String password, Collection<? extends GrantedAuthority> authorities, boolean isActive, String profilePicture) {
+    public UserDetailsImpl(String firstName, String lastName, String username, String password, Collection<? extends GrantedAuthority> authorities, boolean isActive, String profilePicture, boolean isDarkTheme) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.username = username;
@@ -26,11 +27,12 @@ public class UserDetailsImpl implements UserDetails {
         this.authorities = authorities;
         this.isActive = isActive;
         this.profilePicture = profilePicture;
+        this.isDarkTheme = isDarkTheme;
     }
 
     public static UserDetailsImpl build(User user){
         List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().getName().name()));
-        return new UserDetailsImpl(user.getFirstName(), user.getLastName(), user.getUsername(), user.getPassword(), authorities, user.isActive(), user.getProfilePicture());
+        return new UserDetailsImpl(user.getFirstName(), user.getLastName(), user.getUsername(), user.getPassword(), authorities, user.isActive(), user.getProfilePicture(), user.getIsDarkTheme());
     }
 
     @Override
@@ -70,6 +72,10 @@ public class UserDetailsImpl implements UserDetails {
 
     public String getProfilePicture() {
         return profilePicture;
+    }
+
+    public boolean getIsDarkTheme() {
+        return isDarkTheme;
     }
 
     public String getFirstName() {

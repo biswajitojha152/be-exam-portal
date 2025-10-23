@@ -78,6 +78,7 @@ public class UserServiceImpl implements UserService {
                 signUpRequest.getEmail(),
                 signUpRequest.getPhone(),
                 signUpRequest.getProfilePicture(),
+                false,
                 true,
                 userRole
         );
@@ -125,7 +126,8 @@ public class UserServiceImpl implements UserService {
                     jwt,
                     userDetails.getUsername(),
                     role,
-                    userDetails.getProfilePicture()
+                    userDetails.getProfilePicture(),
+                    userDetails.getIsDarkTheme()
             )
         );
     }

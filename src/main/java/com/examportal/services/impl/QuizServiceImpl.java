@@ -278,13 +278,17 @@ public class QuizServiceImpl implements QuizService {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         boolean isQuizInProgress = inMemoryQuizProgressStore.getQuizProgressForUser(username) != null;
         if(isQuizInProgress){
-            return new ResponseDTO<>(false, "A Quiz is already in Progress. You can't start another before submitting it.", null);
+            return new ResponseDTO<>(false, "A quiz is already in progress. You can't start another before submitting it.", null);
         }
         Quiz quiz = quizRepository.findByIdAndIsActiveTrue(quizId).orElseThrow(()-> new IllegalArgumentException("Quiz not found with Quiz Id: "+quizId));
         QuizProgressDTO quizProgressDTO = new QuizProgressDTO(quiz.getId(), quiz.getName(), Instant.now(), Instant.now(), (long) (quiz.getDuration()*60),quiz.getQuestions().stream().filter(Question::getIsActive).map(question -> new QuizProgressQuestionDTO(question.getId(), question.getName(), question.getOptionList().stream().map(option-> new OptionDTO(option.getId(), option.getName(), false)).collect(Collectors.toList()), false, false)).collect(Collectors.toList()));
         if(quizProgressDTO.getQuizProgressQuestionDTOList().isEmpty()){
-            return new ResponseDTO<>(false, "No Active Questions Found.", null);
+            return new ResponseDTO<>(false, "No active questions found.", null);
+        }else if(quiz.getAttemptableCount() > quizProgressDTO.getQuizProgressQuestionDTOList().size()){
+            return new ResponseDTO<>(false, "Not enough active questions.", null);
         }
+        Collections.shuffle(quizProgressDTO.getQuizProgressQuestionDTOList());
+        quizProgressDTO.setQuizProgressQuestionDTOList(quizProgressDTO.getQuizProgressQuestionDTOList().subList(0, quiz.getAttemptableCount()));
         inMemoryQuizProgressStore.addUserWithQuizToMap(username, quizProgressDTO);
         return new ResponseDTO<>(true, null, new QuizStartResponseDTO(inMemoryQuizProgressStore.getQuizProgressForUser(username).getId(), inMemoryQuizProgressStore.getQuizProgressForUser(username).getQuizProgressQuestionDTOList().get(0).getId()));
     }
