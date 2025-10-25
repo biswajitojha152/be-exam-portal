@@ -1,5 +1,6 @@
 package com.examportal.services;
 
+import com.examportal.dto.ResponseDTO;
 import com.examportal.dto.UserDTO;
 import com.examportal.models.User;
 import com.examportal.payload.request.LoginRequest;
@@ -13,4 +14,5 @@ public interface UserService {
     ResponseEntity<?> loginUserService(LoginRequest loginRequest);
     List<UserDTO> getAllUserService();
     User getUserEntityByUsername(String username);
+    ResponseDTO<Void> toggleThem(String username);
 }

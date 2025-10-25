@@ -1,5 +1,6 @@
 package com.examportal.services.impl;
 
+import com.examportal.dto.ResponseDTO;
 import com.examportal.dto.UserDTO;
 import com.examportal.helper.EmailTemplateBuilder;
 import com.examportal.helper.PasswordGenerator;
@@ -16,6 +17,7 @@ import com.examportal.security.jwt.JwtUtils;
 import com.examportal.security.services.UserDetailsImpl;
 import com.examportal.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -156,5 +158,14 @@ public class UserServiceImpl implements UserService {
         return userRepository.findByUsername(
                         username)
                 .orElseThrow(()-> new UsernameNotFoundException("Username not found."));
+    }
+
+    @Override
+    @CacheEvict(value = "user", allEntries = true)
+    public ResponseDTO<Void> toggleThem(String username) {
+        User user = userRepository.findByUsername(username).orElseThrow(()-> new UsernameNotFoundException("Username not found."));
+        user.setIsDarkTheme(!user.getIsDarkTheme());
+        userRepository.save(user);
+        return new ResponseDTO<>(true, "Theme updated successfully.", null);
     }
 }
