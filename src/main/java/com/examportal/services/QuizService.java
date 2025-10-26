@@ -3,6 +3,7 @@ package com.examportal.services;
 import com.examportal.dto.*;
 import com.examportal.models.Quiz;
 
+import java.time.Instant;
 import java.util.List;
 
 public interface QuizService {
@@ -27,5 +28,7 @@ public interface QuizService {
     QuizInstructionDTO getQuizInstructions(Integer quizId);
 
     ResponseDTO<QuizStartResponseDTO> startQuizService(Integer quizId);
+
+    QuizTrailDTO handleQuizSubmit(String username, QuizProgressDTO quizProgressDTO, Instant currentInstant);
 
 }

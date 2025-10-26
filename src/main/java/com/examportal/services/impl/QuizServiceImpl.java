@@ -5,6 +5,7 @@ import com.examportal.dto.projection.QuizIdsWithQuizCountProjection;
 import com.examportal.dto.projection.QuizProjection;
 import com.examportal.dto.projection.QuizProjectionWithQuestionCount;
 import com.examportal.helper.JsonConverter;
+import com.examportal.helper.QuizAttemptStatusChecker;
 import com.examportal.models.*;
 import com.examportal.repository.CategoryRepository;
 import com.examportal.repository.QuizRepository;
@@ -23,6 +24,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -43,7 +45,7 @@ public class QuizServiceImpl implements QuizService {
 
     @Autowired
     private UserRepository userRepository;
-
+    
     @Autowired
     private AuditLogService auditLogService;
 
@@ -136,41 +138,7 @@ public class QuizServiceImpl implements QuizService {
     public QuizTrailDTO submitQuiz() {
         Instant currentInstant = Instant.now();
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        QuizProgressDTO quizProgressDTO = inMemoryQuizProgressStore.getQuizProgressForUser(username);
-        if(quizProgressDTO != null){
-            Quiz quiz = quizRepository.findById(quizProgressDTO.getId()).orElseThrow(()-> new IllegalArgumentException("Quiz not exits with id: "+quizProgressDTO.getId()));
-
-            List<Question> questionList = quiz.getQuestions();
-
-            Map<Integer, Question> questionMap = new HashMap<>();
-            questionList.forEach(question -> {
-                questionMap.put(question.getId(), question);
-            });
-            AtomicReference<Integer> correctAnswers = new AtomicReference<>(0);
-            AtomicReference<Integer> attemptedQuestions = new AtomicReference<>(0);
-            quizProgressDTO.getQuizProgressQuestionDTOList().forEach(questionDTO -> {
-                Optional<Question> questionOptional = Optional.ofNullable(questionMap.get(questionDTO.getId()));
-                if(questionOptional.isPresent()){
-                    Option correctOption = questionOptional.get().getOptionList().stream().filter(Option::getIsCorrect).findFirst().orElseThrow(()-> new RuntimeException("No Correct Answer Found."));
-                    Optional<OptionDTO> selectedOption = questionDTO.getOptionDTOList().stream().filter(OptionDTO::getIsCorrect).findFirst();
-                    if(selectedOption.isPresent()){
-                        attemptedQuestions.getAndSet(attemptedQuestions.get() + 1);
-                    }
-                    if(selectedOption.isPresent() && Objects.equals(selectedOption.get().getId(), correctOption.getId())){
-                        correctAnswers.getAndSet(correctAnswers.get() + 1);
-                    }
-                }else {
-                    throw new IllegalArgumentException("Question does not exits with id: "+questionDTO.getId());
-                }
-            });
-
-            long timeTaken = Duration.between(quizProgressDTO.getQuizStartTime(), currentInstant).getSeconds();
-            QuizTrail quizTrail = new QuizTrail(null, quiz, userRepository.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName()).orElseThrow(()-> new IllegalArgumentException("No user found with this username.")), quiz.getAttemptableCount().intValue(), attemptedQuestions.get(), correctAnswers.get(), Instant.now(), (short) ((timeTaken > (quiz.getDuration()*60)) ? quiz.getDuration() * 60: timeTaken), isPassed(quiz.getAttemptableCount().intValue(), correctAnswers.get()) ? EStatus.PASSED : EStatus.FAILED);
-            QuizTrail quizTrailResponse = quizTrailRepository.save(quizTrail);
-            inMemoryQuizProgressStore.removeQuizForUser(username);
-            return new QuizTrailDTO(quizTrailResponse.getId(), new QuizDTO(quizTrailResponse.getQuiz().getId() ,quizTrailResponse.getQuiz().getName(), null,quizTrailResponse.getQuiz().getCategory().getName(), null, null, null, quizTrailResponse.getQuiz().getAttemptableCount(), quizTrailResponse.getQuiz().getDuration(), true), username, quizTrail.getTotalQuestions(), quizTrailResponse.getAttemptedQuestions(),quizTrailResponse.getCorrectAnswer(), quizTrailResponse.getAttemptedAt(), quizTrailResponse.getTimeTaken(), quizTrailResponse.getStatus().getRoleValue());
-        }
-        throw new IllegalArgumentException("No Quiz In Progress Found.");
+        return handleQuizSubmit(username, inMemoryQuizProgressStore.getQuizProgressForUser(username), currentInstant);
     }
 
 
@@ -293,8 +261,46 @@ public class QuizServiceImpl implements QuizService {
         return new ResponseDTO<>(true, null, new QuizStartResponseDTO(inMemoryQuizProgressStore.getQuizProgressForUser(username).getId(), inMemoryQuizProgressStore.getQuizProgressForUser(username).getQuizProgressQuestionDTOList().get(0).getId()));
     }
 
-    private boolean isPassed(Integer totalQuestions, Integer correctAnswers){
-        return (double)correctAnswers / totalQuestions * 100 >= 33;
+    @Override
+    @Transactional
+    public QuizTrailDTO handleQuizSubmit(String username, QuizProgressDTO quizProgressDTO, Instant currentInstant) {
+        if(quizProgressDTO != null){
+            Quiz quiz = quizRepository.findById(quizProgressDTO.getId()).orElseThrow(()-> new IllegalArgumentException("Quiz not exits with id: "+quizProgressDTO.getId()));
+
+            List<Question> questionList = quiz.getQuestions();
+
+            Map<Integer, Question> questionMap = new HashMap<>();
+            questionList.forEach(question -> {
+                questionMap.put(question.getId(), question);
+            });
+
+            AtomicReference<Integer> correctAnswers = new AtomicReference<>(0);
+            AtomicReference<Integer> attemptedQuestions = new AtomicReference<>(0);
+            quizProgressDTO.getQuizProgressQuestionDTOList().forEach(questionDTO -> {
+                Optional<Question> questionOptional = Optional.ofNullable(questionMap.get(questionDTO.getId()));
+                if(questionOptional.isPresent()){
+                    Option correctOption = questionOptional.get().getOptionList().stream().filter(Option::getIsCorrect).findFirst().orElseThrow(()-> new RuntimeException("No Correct Answer Found."));
+                    Optional<OptionDTO> selectedOption = questionDTO.getOptionDTOList().stream().filter(OptionDTO::getIsCorrect).findFirst();
+                    if(selectedOption.isPresent()){
+                        attemptedQuestions.getAndSet(attemptedQuestions.get() + 1);
+                    }
+                    if(selectedOption.isPresent() && Objects.equals(selectedOption.get().getId(), correctOption.getId())){
+                        correctAnswers.getAndSet(correctAnswers.get() + 1);
+                    }
+                }else {
+                    throw new IllegalArgumentException("Question does not exits with id: "+questionDTO.getId());
+                }
+            });
+
+            long timeTaken = Duration.between(quizProgressDTO.getQuizStartTime(), currentInstant).getSeconds();
+            QuizTrail quizTrail = new QuizTrail(null, quiz, userRepository.findByUsername(username).orElseThrow(()-> new IllegalArgumentException("No user found with this username.")), quiz.getAttemptableCount().intValue(), attemptedQuestions.get(), correctAnswers.get(), Instant.now(), (short) ((timeTaken > (quiz.getDuration()*60)) ? quiz.getDuration() * 60: timeTaken), QuizAttemptStatusChecker.isPassed(quiz.getAttemptableCount().intValue(), correctAnswers.get()) ? EStatus.PASSED : EStatus.FAILED);
+            System.out.println(quizTrail.getUser() + " :till here also working");
+            QuizTrail quizTrailResponse = quizTrailRepository.save(quizTrail);
+            inMemoryQuizProgressStore.removeQuizForUser(username);
+            System.out.println("it happened....");
+            return new QuizTrailDTO(quizTrailResponse.getId(), new QuizDTO(quizTrailResponse.getQuiz().getId() ,quizTrailResponse.getQuiz().getName(), null,quizTrailResponse.getQuiz().getCategory().getName(), null, null, null, quizTrailResponse.getQuiz().getAttemptableCount(), quizTrailResponse.getQuiz().getDuration(), true), username, quizTrail.getTotalQuestions(), quizTrailResponse.getAttemptedQuestions(),quizTrailResponse.getCorrectAnswer(), quizTrailResponse.getAttemptedAt(), quizTrailResponse.getTimeTaken(), quizTrailResponse.getStatus().getRoleValue());
+        }
+        throw new IllegalArgumentException("No Quiz In Progress Found.");
     }
 
     private boolean hasChanges(Quiz quiz, QuizDTO quizDTO){

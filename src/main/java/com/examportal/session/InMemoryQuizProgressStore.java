@@ -12,6 +12,10 @@ import java.util.Objects;
 public class InMemoryQuizProgressStore {
     private final Map<String, QuizProgressDTO> quizProgressDTOMap = new HashMap<>();
 
+    public Map<String, QuizProgressDTO> getQuizProgressDTOMap() {
+        return quizProgressDTOMap;
+    }
+
     public void addUserWithQuizToMap(String username, QuizProgressDTO quizProgressDTO){
         quizProgressDTOMap.put(username, quizProgressDTO);
     }
