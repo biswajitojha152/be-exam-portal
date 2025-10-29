@@ -3,6 +3,7 @@ package com.examportal.models;
 import jakarta.persistence.*;
 
 import java.io.Serializable;
+import java.time.Instant;
 import java.util.List;
 
 @Entity
@@ -35,6 +36,8 @@ public class User implements Serializable {
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     private Role role;
 
+    private Instant joiningDate;
+
     private boolean isDarkTheme;
 
     @Column(nullable = false)
@@ -57,6 +60,7 @@ public class User implements Serializable {
             String email,
             String phone,
             String profilePicture,
+            Instant joiningDate,
             boolean isDarkTheme,
             boolean isActive,
             Role role
@@ -68,6 +72,7 @@ public class User implements Serializable {
         this.email = email;
         this.phone = phone;
         this.profilePicture = profilePicture;
+        this.joiningDate = joiningDate;
         this.isDarkTheme = isDarkTheme;
         this.isActive = isActive;
         this.role = role;
@@ -135,6 +140,14 @@ public class User implements Serializable {
 
     public void setProfilePicture(String profilePicture) {
         this.profilePicture = profilePicture;
+    }
+
+    public Instant getJoiningDate() {
+        return joiningDate;
+    }
+
+    public void setJoiningDate(Instant joiningDate) {
+        this.joiningDate = joiningDate;
     }
 
     public Role getRole() {

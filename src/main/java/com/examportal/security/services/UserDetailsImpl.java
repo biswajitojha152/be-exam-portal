@@ -5,6 +5,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -14,12 +15,14 @@ public class UserDetailsImpl implements UserDetails {
     private final String lastName;
     private final String username;
     private final String password;
+    private final String email;
     private final Collection<? extends  GrantedAuthority> authorities;
     private final boolean isActive;
     private final String profilePicture;
+    private final Instant joiningDate;
     private final boolean isDarkTheme;
 
-    public UserDetailsImpl(String firstName, String lastName, String username, String password, Collection<? extends GrantedAuthority> authorities, boolean isActive, String profilePicture, boolean isDarkTheme) {
+    public UserDetailsImpl(String firstName, String lastName, String username, String password, String email, Collection<? extends GrantedAuthority> authorities, boolean isActive, String profilePicture, Instant joiningDate,boolean isDarkTheme) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.username = username;
@@ -27,12 +30,14 @@ public class UserDetailsImpl implements UserDetails {
         this.authorities = authorities;
         this.isActive = isActive;
         this.profilePicture = profilePicture;
+        this.email = email;
+        this.joiningDate = joiningDate;
         this.isDarkTheme = isDarkTheme;
     }
 
     public static UserDetailsImpl build(User user){
         List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().getName().name()));
-        return new UserDetailsImpl(user.getFirstName(), user.getLastName(), user.getUsername(), user.getPassword(), authorities, user.isActive(), user.getProfilePicture(), user.getIsDarkTheme());
+        return new UserDetailsImpl(user.getFirstName(), user.getLastName(), user.getUsername(), user.getPassword(), user.getEmail(), authorities, user.isActive(), user.getProfilePicture(), user.getJoiningDate(), user.getIsDarkTheme());
     }
 
     @Override
@@ -70,8 +75,16 @@ public class UserDetailsImpl implements UserDetails {
         return username;
     }
 
+    public String getEmail() {
+        return email;
+    }
+
     public String getProfilePicture() {
         return profilePicture;
+    }
+
+    public Instant getJoiningDate() {
+        return joiningDate;
     }
 
     public boolean getIsDarkTheme() {

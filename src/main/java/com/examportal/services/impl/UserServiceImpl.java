@@ -29,6 +29,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -80,6 +81,7 @@ public class UserServiceImpl implements UserService {
                 signUpRequest.getEmail(),
                 signUpRequest.getPhone(),
                 signUpRequest.getProfilePicture(),
+                Instant.now(),
                 false,
                 true,
                 userRole
@@ -127,8 +129,10 @@ public class UserServiceImpl implements UserService {
                     userDetails.getLastName(),
                     jwt,
                     userDetails.getUsername(),
+                    userDetails.getEmail(),
                     role,
                     userDetails.getProfilePicture(),
+                    userDetails.getJoiningDate(),
                     userDetails.getIsDarkTheme()
             )
         );
