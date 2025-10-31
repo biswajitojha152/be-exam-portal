@@ -33,12 +33,14 @@ public class Quiz {
     @Column(nullable = false, columnDefinition = "TINYINT UNSIGNED")
     private Byte duration;
 
+    private boolean isRecommended;
+
     private boolean isActive;
 
     public Quiz() {
     }
 
-    public Quiz(Integer id, String name, Category category, List<Question> questions, List<QuizTrail> quizTrails, String description, Byte attemptableCount, Byte duration, boolean isActive) {
+    public Quiz(Integer id, String name, Category category, List<Question> questions, List<QuizTrail> quizTrails, String description, Byte attemptableCount, Byte duration, boolean isRecommended, boolean isActive) {
         this.id = id;
         this.name = name;
         this.category = category;
@@ -47,6 +49,7 @@ public class Quiz {
         this.description = description;
         this.attemptableCount = attemptableCount;
         this.duration = duration;
+        this.isRecommended = isRecommended;
         this.isActive = isActive;
     }
 
@@ -112,6 +115,22 @@ public class Quiz {
 
     public void setDuration(Byte duration) {
         this.duration = duration;
+    }
+
+    public boolean getIsRecommended() {
+        return isRecommended;
+    }
+
+    public void setIsRecommended(boolean isRecommended) {
+        this.isRecommended = isRecommended;
+    }
+
+    public boolean isActive() {
+        return isActive;
+    }
+
+    public void setActive(boolean active) {
+        isActive = active;
     }
 
     public boolean getIsActive() {

@@ -23,6 +23,11 @@ public class QuizController {
         return ResponseEntity.ok(quizService.getAllQuiz(pageNo, pageSize, categoryId, searchInput));
     }
 
+    @GetMapping("/getAllRecommendedQuiz")
+    public ResponseEntity<List<QuizDTO>> getAllRecommendedQuiz() {
+        return ResponseEntity.ok(quizService.getAllRecommendedQuiz());
+    }
+
     @PostMapping("/saveQuiz")
     public ResponseEntity<MessageResponse> saveQuiz(@RequestBody @Valid QuizDTO quizDTO) {
         ResponseDTO<Quiz> quizSaveResponse = quizService.saveQuiz(quizDTO);

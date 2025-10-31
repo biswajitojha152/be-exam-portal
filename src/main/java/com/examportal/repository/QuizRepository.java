@@ -78,7 +78,7 @@ public interface QuizRepository extends JpaRepository<Quiz, Integer> {
     )
     QuizIdsWithQuizCountProjection findQuizIdsWithQuizCount(@Param("searchInput") String searchInput, @Param("categoryId") Integer categoryId);
 
-//    List<Quiz> findAllByIsActiveTrue();
+    List<Quiz> findAllByIsRecommendedTrueAndIsActiveTrue();
 
     Optional<Quiz> findByIdAndIsActiveTrue(Integer id);
 

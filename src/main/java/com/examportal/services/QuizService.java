@@ -9,6 +9,8 @@ import java.util.List;
 public interface QuizService {
     PaginatedResponse<QuizDTO> getAllQuiz(Integer pageNo, Integer pageSize,Integer categoryId, String searchInput);
 
+    List<QuizDTO> getAllRecommendedQuiz();
+
     ResponseDTO<Quiz> saveQuiz(QuizDTO quizDTO);
 
     ResponseDTO<Quiz> updateQuiz(QuizDTO quizDTO);

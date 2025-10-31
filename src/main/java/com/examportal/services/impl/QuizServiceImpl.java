@@ -104,6 +104,11 @@ public class QuizServiceImpl implements QuizService {
     }
 
     @Override
+    public List<QuizDTO> getAllRecommendedQuiz() {
+        return quizRepository.findAllByIsRecommendedTrueAndIsActiveTrue().stream().map(quiz -> new QuizDTO(quiz.getId(), quiz.getName(), null, quiz.getCategory().getName(), null, quiz.getDescription(), null, quiz.getAttemptableCount(), quiz.getDuration(), quiz.getIsActive())).collect(Collectors.toList());
+    }
+
+    @Override
     @CacheEvict(value = "categories",allEntries = true)
     public ResponseDTO<Quiz> saveQuiz(QuizDTO quizDTO) {
         if(quizRepository.existsByName(quizDTO.getName())){
@@ -112,8 +117,8 @@ public class QuizServiceImpl implements QuizService {
 
         Optional<Category> category = categoryRepository.findById(quizDTO.getCategoryId());
         if(category.isPresent()){
-            Quiz result = quizRepository.save(new Quiz(null, quizDTO.getName(), category.get(), null, null,  quizDTO.getDescription(), quizDTO.getAttemptableCount(), quizDTO.getDuration(), true));
-            auditLogService.saveAuditLog(EOperation.CREATE, new Quiz(result.getId(), result.getName(), new Category(category.get().getId(), category.get().getName(), null, null, category.get().getIsActive()), null, null, result.getDescription(), result.getAttemptableCount(), result.getDuration(), result.getIsActive()));
+            Quiz result = quizRepository.save(new Quiz(null, quizDTO.getName(), category.get(), null, null,  quizDTO.getDescription(), quizDTO.getAttemptableCount(), quizDTO.getDuration(), false, true));
+            auditLogService.saveAuditLog(EOperation.CREATE, new Quiz(result.getId(), result.getName(), new Category(category.get().getId(), category.get().getName(), null, null, category.get().getIsActive()), null, null, result.getDescription(), result.getAttemptableCount(), result.getDuration(), result.getIsRecommended(), result.getIsActive()));
             return new ResponseDTO<>(true, "Quiz saved successfully.", result);
         }
         throw new IllegalArgumentException("Category does not exists.");
@@ -127,7 +132,7 @@ public class QuizServiceImpl implements QuizService {
             quiz.setAttemptableCount(quizDTO.getAttemptableCount());
             quiz.setDuration(quizDTO.getDuration());
             Quiz result = quizRepository.save(quiz);
-            auditLogService.saveAuditLog(EOperation.UPDATE, new Quiz(result.getId(), result.getName(), new Category(null, quiz.getCategory().getName(), null, null,quiz.getCategory().getIsActive()), null, null, result.getDescription(), result.getAttemptableCount(), result.getDuration(), result.getIsActive()));
+            auditLogService.saveAuditLog(EOperation.UPDATE, new Quiz(result.getId(), result.getName(), new Category(null, quiz.getCategory().getName(), null, null,quiz.getCategory().getIsActive()), null, null, result.getDescription(), result.getAttemptableCount(), result.getDuration(), result.getIsRecommended(), result.getIsActive()));
             return new ResponseDTO<>(true, "Quiz updated successfully.", result);
         }else {
             return new ResponseDTO<>(true, "No changes were made as the data is already up to date.", null);
@@ -154,7 +159,7 @@ public class QuizServiceImpl implements QuizService {
         entitiesStatusUpdateAuditDTO.setRemark(updateEntitiesStatusDTO.getRemark().trim());
         List<Quiz> quizzesAudit = new ArrayList<>();
         resultList.forEach(quiz->{
-            quizzesAudit.add(new Quiz(quiz.getId(), quiz.getName(), null, null, null, quiz.getDescription(), null, null, quiz.getIsActive()));
+            quizzesAudit.add(new Quiz(quiz.getId(), quiz.getName(), null, null, null, quiz.getDescription(), null, null, quiz.getIsRecommended(),quiz.getIsActive()));
         });
         entitiesStatusUpdateAuditDTO.setDataList(quizzesAudit);
         auditLogService.saveAuditLog(EOperation.UPDATE, entitiesStatusUpdateAuditDTO);
