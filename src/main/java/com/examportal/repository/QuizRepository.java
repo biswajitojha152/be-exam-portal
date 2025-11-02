@@ -83,19 +83,16 @@ public interface QuizRepository extends JpaRepository<Quiz, Integer> {
     Optional<Quiz> findByIdAndIsActiveTrue(Integer id);
 
     @Query(
-            value = "SELECT " +
-                    "q.id AS id, " +
+            "SELECT q.id AS id, " +
                     "q.name AS name, " +
-                    "c.name AS categoryName, " +
-//                    "NULL AS questionDTOList, " +
+                    "q.category.name AS categoryName, " +
                     "q.description AS description, " +
                     "q.attemptableCount AS attemptableCount, " +
                     "q.duration AS duration " +
                     "FROM Quiz q " +
-                    "LEFT JOIN q.category c " +
-                    "LEFT JOIN q.questions ques " +
-                    "WHERE (:searchInput IS NULL OR q.name LIKE CONCAT('%', :searchInput, '%') OR q.description LIKE CONCAT('%', :searchInput, '%')) " +
-                    "AND (:categoryId IS NULL OR c.id = :categoryId) "
+                    "WHERE q.isActive=true " +
+                    "AND (:searchInput IS NULL OR q.name LIKE CONCAT('%', :searchInput, '%') OR q.description LIKE CONCAT('%', :searchInput, '%')) " +
+                    "AND (:categoryId IS NULL OR q.category.id = :categoryId) "
     )
     List<QuizProjection> findQuizList(@Param("searchInput") String searchInput, @Param("categoryId") Integer categoryId, Sort sort);
 

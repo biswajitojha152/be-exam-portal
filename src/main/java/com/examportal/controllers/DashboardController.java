@@ -31,7 +31,7 @@ public class DashboardController {
             @ModelAttribute QuizTrailArgumentDTO quizTrailArgumentDTO
     ){
         String role = securityContextHelper.getCurrentUserRole();
-        if(!Objects.equals(role, ERole.ADMIN.name())){
+        if(!Objects.equals(role, "ROLE_"+ERole.ADMIN.name())){
             quizTrailArgumentDTO.setSearchByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
         }
         return ResponseEntity.ok(dashboardService.getQuizTrail(quizTrailArgumentDTO));
