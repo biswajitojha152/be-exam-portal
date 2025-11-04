@@ -21,9 +21,14 @@ public class DashboardController {
     @Autowired
     private SecurityContextHelper securityContextHelper;
 
-    @GetMapping("/getDashboardSummary")
-    public ResponseEntity<?> getDashboardSummary(){
-        return ResponseEntity.ok(dashboardService.getDashboardSummary());
+    @GetMapping("/getDashboardSummaryAdmin")
+    public ResponseEntity<?> getDashboardSummaryAdmin(){
+        return ResponseEntity.ok(dashboardService.getDashboardSummaryAdmin());
+    }
+
+    @GetMapping("/getDashboardSummaryUser")
+    public ResponseEntity<?> getDashboardSummaryUser(){
+        return ResponseEntity.ok(dashboardService.getDashboardSummaryUser());
     }
 
     @GetMapping("/getQuizTrail")

@@ -1,6 +1,7 @@
 package com.examportal.services.impl;
 
 import com.examportal.dto.*;
+import com.examportal.dto.projection.DashboardDataUserProjection;
 import com.examportal.models.*;
 import com.examportal.repository.CategoryRepository;
 import com.examportal.repository.QuizRepository;
@@ -37,8 +38,13 @@ public class DashboardServiceImpl implements DashboardService {
     private QuizTrailRepository quizTrailRepository;
 
     @Override
-    public DashboardData getDashboardSummary() {
-        return new DashboardData(userRepository.count(), quizRepository.count(), categoryRepository.count(), new AttemptsDTO(quizTrailRepository.count(), quizTrailRepository.countByStatus(EStatus.PASSED), quizTrailRepository.countByStatus(EStatus.FAILED)));
+    public DashboardDataAdmin getDashboardSummaryAdmin() {
+        return new DashboardDataAdmin(userRepository.count(), quizRepository.count(), categoryRepository.count(), new AttemptsDTO(quizTrailRepository.count(), quizTrailRepository.countByStatus(EStatus.PASSED), quizTrailRepository.countByStatus(EStatus.FAILED)));
+    }
+
+    @Override
+    public DashboardDataUserProjection getDashboardSummaryUser() {
+        return quizRepository.findDashboardSummaryForUser("");
     }
 
     @Override

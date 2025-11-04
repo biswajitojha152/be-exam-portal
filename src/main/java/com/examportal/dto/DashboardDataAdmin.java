@@ -1,14 +1,14 @@
 package com.examportal.dto;
 
-public class DashboardData {
+public class DashboardDataAdmin {
     private Long numberOfUser;
     private Long numberOfQuiz;
     private Long numberOfCategory;
     private AttemptsDTO attemptsDTO;
-    public DashboardData() {
+    public DashboardDataAdmin() {
     }
 
-    public DashboardData(Long numberOfUser, Long numberOfQuiz, Long numberOfCategory, AttemptsDTO attemptsDTO) {
+    public DashboardDataAdmin(Long numberOfUser, Long numberOfQuiz, Long numberOfCategory, AttemptsDTO attemptsDTO) {
         this.numberOfUser = numberOfUser;
         this.numberOfQuiz = numberOfQuiz;
         this.numberOfCategory = numberOfCategory;

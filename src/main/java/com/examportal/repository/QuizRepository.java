@@ -1,6 +1,7 @@
 package com.examportal.repository;
 
 
+import com.examportal.dto.projection.DashboardDataUserProjection;
 import com.examportal.dto.projection.QuizIdsWithQuizCountProjection;
 import com.examportal.dto.projection.QuizProjection;
 import com.examportal.dto.projection.QuizProjectionWithQuestionCount;
@@ -20,6 +21,15 @@ import java.util.Optional;
 public interface QuizRepository extends JpaRepository<Quiz, Integer> {
 
     Boolean existsByName(String quizName);
+
+    @Query(
+            value = "SELECT COUNT(id) AS quizzesAttempted, " +
+                    "ROUND(AVG((q.correctAnswer/q.totalQuestions) * 100), 2) AS averageScore, " +
+                    "ROUND(MAX((q.correctAnswer/q.totalQuestions) * 100), 2) AS bestScore, " +
+                    "SUM(q.timeTaken) AS totalTimeSpent " +
+                    "FROM QuizTrail q"
+    )
+    DashboardDataUserProjection findDashboardSummaryForUser(String username);
 
     @Query(
             value = "SELECT " +
